@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Activity, Eye, EyeOff } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { Activity, Eye, EyeOff, ArrowLeft } from "lucide-react";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("doctor@clinic.com");
-  const [password, setPassword] = useState("admin123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
@@ -22,12 +22,16 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen animated-bg flex items-center justify-center p-4">
       <div className="w-full max-w-sm glass-panel rounded-2xl border neon-border-cyan neon-glow-cyan p-8 animate-slide-in">
+        <Link to="/" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors mb-6">
+          <ArrowLeft className="w-3 h-3" /> Back to AI Chat
+        </Link>
+
         <div className="flex flex-col items-center mb-8">
           <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center neon-glow-cyan mb-4">
             <Activity className="w-8 h-8 neon-text-cyan" />
           </div>
           <h1 className="font-display text-xl font-bold neon-text-cyan tracking-wider">MEDI ASSIST</h1>
-          <p className="text-xs text-muted-foreground mt-1">AI Clinic Receptionist</p>
+          <p className="text-xs text-muted-foreground mt-1">Doctor Login Panel</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
@@ -37,6 +41,7 @@ export default function LoginPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              placeholder="doctor@clinic.com"
               className="w-full px-4 py-2.5 bg-secondary/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
@@ -47,13 +52,10 @@ export default function LoginPage() {
                 type={showPw ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter password"
                 className="w-full px-4 py-2.5 pr-10 bg-secondary/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
-              <button
-                type="button"
-                onClick={() => setShowPw(!showPw)}
-                className="absolute right-3 top-1/2 -translate-y-1/2"
-              >
+              <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2">
                 {showPw ? <EyeOff className="w-4 h-4 text-muted-foreground" /> : <Eye className="w-4 h-4 text-muted-foreground" />}
               </button>
             </div>
