@@ -10,6 +10,7 @@ import ChatPage from "@/pages/ChatPage";
 import AppointmentsPage from "@/pages/AppointmentsPage";
 import PatientsPage from "@/pages/PatientsPage";
 import SettingsPage from "@/pages/SettingsPage";
+import PatientChatPage from "@/pages/PatientChatPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -21,7 +22,10 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          {/* Patient-facing AI chatbot - main landing page */}
+          <Route path="/" element={<PatientChatPage />} />
+          
+          {/* Doctor login & dashboard */}
           <Route path="/login" element={<LoginPage />} />
           <Route element={<DashboardLayout />}>
             <Route path="/dashboard" element={<DashboardPage />} />
