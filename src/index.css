@@ -8,32 +8,23 @@
   :root {
     --background: 220 20% 97%;
     --foreground: 220 20% 10%;
-
     --card: 0 0% 100%;
     --card-foreground: 220 20% 10%;
-
     --popover: 0 0% 100%;
     --popover-foreground: 220 20% 10%;
-
     --primary: 190 90% 50%;
     --primary-foreground: 220 20% 5%;
-
     --secondary: 220 15% 92%;
     --secondary-foreground: 220 20% 10%;
-
     --muted: 220 15% 92%;
     --muted-foreground: 220 10% 45%;
-
     --accent: 160 80% 45%;
     --accent-foreground: 220 20% 5%;
-
     --destructive: 0 80% 55%;
     --destructive-foreground: 0 0% 100%;
-
     --border: 220 15% 88%;
     --input: 220 15% 88%;
     --ring: 190 90% 50%;
-
     --radius: 0.75rem;
 
     --neon-cyan: 190 90% 55%;
@@ -59,28 +50,20 @@
   .dark {
     --background: 225 25% 6%;
     --foreground: 210 20% 92%;
-
     --card: 225 25% 9%;
     --card-foreground: 210 20% 92%;
-
     --popover: 225 25% 9%;
     --popover-foreground: 210 20% 92%;
-
     --primary: 190 90% 55%;
     --primary-foreground: 225 25% 5%;
-
     --secondary: 225 20% 14%;
     --secondary-foreground: 210 20% 92%;
-
     --muted: 225 20% 14%;
     --muted-foreground: 215 15% 55%;
-
     --accent: 160 80% 45%;
     --accent-foreground: 225 25% 5%;
-
     --destructive: 0 75% 45%;
     --destructive-foreground: 210 20% 92%;
-
     --border: 225 20% 16%;
     --input: 225 20% 16%;
     --ring: 190 90% 55%;
@@ -110,12 +93,10 @@
   * {
     @apply border-border;
   }
-
   body {
     @apply bg-background text-foreground font-sans;
     font-family: 'Inter', sans-serif;
   }
-
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Orbitron', sans-serif;
   }
@@ -134,19 +115,16 @@
                 0 0 30px hsla(var(--neon-cyan) / 0.15),
                 0 0 60px hsla(var(--neon-cyan) / 0.05);
   }
-
   .neon-glow-green {
     box-shadow: 0 0 10px hsla(var(--neon-green) / 0.3),
                 0 0 30px hsla(var(--neon-green) / 0.15),
                 0 0 60px hsla(var(--neon-green) / 0.05);
   }
-
   .neon-glow-pink {
     box-shadow: 0 0 10px hsla(var(--neon-pink) / 0.3),
                 0 0 30px hsla(var(--neon-pink) / 0.15),
                 0 0 60px hsla(var(--neon-pink) / 0.05);
   }
-
   .neon-glow-yellow {
     box-shadow: 0 0 10px hsla(var(--neon-yellow) / 0.3),
                 0 0 30px hsla(var(--neon-yellow) / 0.15);
@@ -157,19 +135,16 @@
     text-shadow: 0 0 8px hsla(var(--neon-cyan) / 0.5),
                  0 0 20px hsla(var(--neon-cyan) / 0.3);
   }
-
   .neon-text-green {
     color: hsl(var(--neon-green));
     text-shadow: 0 0 8px hsla(var(--neon-green) / 0.5),
                  0 0 20px hsla(var(--neon-green) / 0.3);
   }
-
   .neon-text-pink {
     color: hsl(var(--neon-pink));
     text-shadow: 0 0 8px hsla(var(--neon-pink) / 0.5),
                  0 0 20px hsla(var(--neon-pink) / 0.3);
   }
-
   .neon-text-yellow {
     color: hsl(var(--neon-yellow));
     text-shadow: 0 0 8px hsla(var(--neon-yellow) / 0.5),
@@ -181,17 +156,20 @@
     box-shadow: inset 0 0 8px hsla(var(--neon-cyan) / 0.1),
                 0 0 8px hsla(var(--neon-cyan) / 0.2);
   }
-
   .neon-border-green {
     border-color: hsl(var(--neon-green));
     box-shadow: inset 0 0 8px hsla(var(--neon-green) / 0.1),
                 0 0 8px hsla(var(--neon-green) / 0.2);
   }
-
   .neon-border-pink {
     border-color: hsl(var(--neon-pink));
     box-shadow: inset 0 0 8px hsla(var(--neon-pink) / 0.1),
                 0 0 8px hsla(var(--neon-pink) / 0.2);
+  }
+  .neon-border-yellow {
+    border-color: hsl(var(--neon-yellow));
+    box-shadow: inset 0 0 8px hsla(var(--neon-yellow) / 0.1),
+                0 0 8px hsla(var(--neon-yellow) / 0.2);
   }
 
   .animated-bg {
@@ -201,6 +179,77 @@
       radial-gradient(ellipse at 50% 50%, hsla(var(--neon-green) / 0.04) 0%, transparent 60%),
       radial-gradient(ellipse at 80% 20%, hsla(var(--neon-yellow) / 0.05) 0%, transparent 40%),
       hsl(var(--background));
+  }
+
+  /* Shining stars background */
+  .stars-bg {
+    background: 
+      radial-gradient(ellipse at 15% 25%, hsla(var(--neon-cyan) / 0.12) 0%, transparent 50%),
+      radial-gradient(ellipse at 85% 75%, hsla(var(--neon-pink) / 0.1) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 10%, hsla(var(--neon-purple) / 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 70% 40%, hsla(var(--neon-cyan) / 0.06) 0%, transparent 40%),
+      radial-gradient(ellipse at 30% 70%, hsla(var(--neon-pink) / 0.06) 0%, transparent 40%),
+      hsl(var(--background));
+  }
+
+  .stars-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      radial-gradient(1px 1px at 10% 15%, hsla(var(--neon-cyan) / 0.8), transparent),
+      radial-gradient(1px 1px at 20% 45%, hsla(var(--neon-pink) / 0.6), transparent),
+      radial-gradient(1.5px 1.5px at 35% 10%, hsla(var(--neon-purple) / 0.7), transparent),
+      radial-gradient(1px 1px at 50% 80%, hsla(var(--neon-cyan) / 0.5), transparent),
+      radial-gradient(1.5px 1.5px at 65% 30%, hsla(var(--neon-pink) / 0.6), transparent),
+      radial-gradient(1px 1px at 80% 60%, hsla(var(--neon-purple) / 0.7), transparent),
+      radial-gradient(1px 1px at 90% 20%, hsla(var(--neon-cyan) / 0.6), transparent),
+      radial-gradient(1.5px 1.5px at 15% 70%, hsla(var(--neon-pink) / 0.5), transparent),
+      radial-gradient(1px 1px at 45% 55%, hsla(var(--neon-purple) / 0.6), transparent),
+      radial-gradient(1px 1px at 75% 85%, hsla(var(--neon-cyan) / 0.7), transparent);
+    animation: twinkle 3s ease-in-out infinite;
+  }
+  .stars-layer-2 {
+    background-image:
+      radial-gradient(1px 1px at 5% 35%, hsla(var(--neon-pink) / 0.7), transparent),
+      radial-gradient(1.5px 1.5px at 25% 85%, hsla(var(--neon-cyan) / 0.6), transparent),
+      radial-gradient(1px 1px at 40% 25%, hsla(var(--neon-purple) / 0.8), transparent),
+      radial-gradient(1px 1px at 55% 5%, hsla(var(--neon-pink) / 0.5), transparent),
+      radial-gradient(1.5px 1.5px at 70% 50%, hsla(var(--neon-cyan) / 0.7), transparent),
+      radial-gradient(1px 1px at 85% 40%, hsla(var(--neon-purple) / 0.6), transparent),
+      radial-gradient(1px 1px at 95% 70%, hsla(var(--neon-pink) / 0.5), transparent),
+      radial-gradient(1px 1px at 30% 95%, hsla(var(--neon-cyan) / 0.6), transparent);
+    animation: twinkle 4s ease-in-out infinite 1s;
+  }
+  .stars-layer-3 {
+    background-image:
+      radial-gradient(2px 2px at 12% 50%, hsla(var(--neon-cyan) / 0.9), transparent),
+      radial-gradient(2px 2px at 60% 15%, hsla(var(--neon-pink) / 0.8), transparent),
+      radial-gradient(2px 2px at 88% 90%, hsla(var(--neon-purple) / 0.9), transparent),
+      radial-gradient(1.5px 1.5px at 42% 70%, hsla(var(--neon-cyan) / 0.7), transparent),
+      radial-gradient(1.5px 1.5px at 78% 10%, hsla(var(--neon-pink) / 0.6), transparent);
+    animation: twinkle 5s ease-in-out infinite 2s;
+  }
+
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+  }
+
+  @keyframes slide-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-slide-in {
+    animation: slide-in 0.3s ease-out;
+  }
+
+  @keyframes pulse-neon {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  .animate-pulse-neon {
+    animation: pulse-neon 1.5s ease-in-out infinite;
   }
 
   .scrollbar-thin::-webkit-scrollbar {
