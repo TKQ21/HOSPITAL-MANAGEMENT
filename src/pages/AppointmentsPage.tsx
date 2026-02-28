@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Check, X, Clock, Search, RefreshCw, Eye } from "lucide-react";
+import { Check, X, Clock, Search, RefreshCw, Eye, CalendarClock } from "lucide-react";
 
 interface Appointment {
   id: number;
@@ -8,9 +8,11 @@ interface Appointment {
   reason: string;
   date: string;
   time: string;
-  status: "pending" | "confirmed" | "cancelled" | "visited";
+  status: "pending" | "confirmed" | "cancelled" | "visited" | "rescheduled";
   source: string;
   createdAt: string;
+  rescheduledDate?: string;
+  rescheduledTime?: string;
 }
 
 const statusConfig: Record<string, { label: string; class: string; bg: string }> = {
@@ -18,13 +20,34 @@ const statusConfig: Record<string, { label: string; class: string; bg: string }>
   confirmed: { label: "Confirmed", class: "neon-text-green", bg: "bg-neon-green/10" },
   cancelled: { label: "Cancelled", class: "neon-text-pink", bg: "bg-neon-pink/10" },
   visited: { label: "Visited", class: "neon-text-cyan", bg: "bg-neon-cyan/10" },
+  rescheduled: { label: "Rescheduled", class: "neon-text-purple", bg: "bg-neon-purple/10" },
 };
+
+function saveNotification(appt: Appointment, newDate: string, newTime: string) {
+  const notifications = JSON.parse(localStorage.getItem("clinic_notifications") || "[]");
+  notifications.push({
+    id: Date.now(),
+    phone: appt.phone,
+    patientName: appt.patientName,
+    message: `🔄 ${appt.patientName} ji, aapka appointment reschedule ho gaya hai.\n\n📅 Nayi Date: ${newDate}\n🕐 Naya Time: ${newTime}\n🏥 Reason: ${appt.reason}\n\nPlease is time pe aayein. Dhanyavaad! 🙏`,
+    oldDate: appt.date,
+    oldTime: appt.time,
+    newDate,
+    newTime,
+    createdAt: new Date().toISOString(),
+    read: false,
+  });
+  localStorage.setItem("clinic_notifications", JSON.stringify(notifications));
+}
 
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [selectedAppt, setSelectedAppt] = useState<Appointment | null>(null);
+  const [rescheduleAppt, setRescheduleAppt] = useState<Appointment | null>(null);
+  const [newDate, setNewDate] = useState("");
+  const [newTime, setNewTime] = useState("");
 
   const loadAppointments = () => {
     const stored = localStorage.getItem("clinic_appointments");
@@ -41,7 +64,6 @@ export default function AppointmentsPage() {
     const updated = appointments.map((a) => {
       if (a.id === id) {
         const upd = { ...a, status };
-        // Update patient visit count when visited
         if (status === "visited") {
           const patients = JSON.parse(localStorage.getItem("clinic_patients") || "[]");
           const updatedPatients = patients.map((p: any) => {
@@ -58,6 +80,42 @@ export default function AppointmentsPage() {
     });
     setAppointments(updated);
     localStorage.setItem("clinic_appointments", JSON.stringify(updated));
+  };
+
+  const handleReschedule = () => {
+    if (!rescheduleAppt || !newDate || !newTime) return;
+    
+    // Save notification for patient
+    saveNotification(rescheduleAppt, newDate, newTime);
+    
+    // Update appointment
+    const updated = appointments.map((a) => {
+      if (a.id === rescheduleAppt.id) {
+        return {
+          ...a,
+          rescheduledDate: newDate,
+          rescheduledTime: newTime,
+          date: newDate,
+          time: newTime,
+          status: "confirmed" as const,
+        };
+      }
+      return a;
+    });
+    setAppointments(updated);
+    localStorage.setItem("clinic_appointments", JSON.stringify(updated));
+    
+    setRescheduleAppt(null);
+    setNewDate("");
+    setNewTime("");
+  };
+
+  const openReschedule = (appt: Appointment, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setRescheduleAppt(appt);
+    setNewDate(appt.date);
+    setNewTime(appt.time);
+    setSelectedAppt(null);
   };
 
   const filtered = appointments.filter((a) => {
@@ -97,7 +155,7 @@ export default function AppointmentsPage() {
           />
         </div>
         <div className="flex gap-2 flex-wrap">
-          {["all", "pending", "confirmed", "cancelled", "visited"].map((s) => (
+          {["all", "pending", "confirmed", "rescheduled", "cancelled", "visited"].map((s) => (
             <button
               key={s}
               onClick={() => setFilterStatus(s)}
@@ -113,7 +171,67 @@ export default function AppointmentsPage() {
         </div>
       </div>
 
-      {/* Detail modal for mobile */}
+      {/* Reschedule Modal */}
+      {rescheduleAppt && (
+        <div className="fixed inset-0 bg-background/80 z-50 flex items-center justify-center p-4" onClick={() => setRescheduleAppt(null)}>
+          <div className="glass-panel rounded-xl border neon-border-yellow p-5 max-w-sm w-full animate-slide-in" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-display text-sm font-bold neon-text-yellow mb-1">🔄 RESCHEDULE APPOINTMENT</h3>
+            <p className="text-xs text-muted-foreground mb-4">Patient ko nayi date/time ka message jayega</p>
+            
+            <div className="space-y-3">
+              <div className="p-3 rounded-lg bg-secondary/30 text-xs">
+                <p className="font-medium">{rescheduleAppt.patientName}</p>
+                <p className="text-muted-foreground">{rescheduleAppt.phone} • {rescheduleAppt.reason}</p>
+                <p className="text-muted-foreground mt-1">Current: {rescheduleAppt.date} at {rescheduleAppt.time}</p>
+              </div>
+
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">New Date</label>
+                <input
+                  type="text"
+                  value={newDate}
+                  onChange={(e) => setNewDate(e.target.value)}
+                  placeholder="e.g. 2026-03-10, Monday, Kal"
+                  className="w-full px-3 py-2 bg-secondary/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">New Time</label>
+                <input
+                  type="text"
+                  value={newTime}
+                  onChange={(e) => setNewTime(e.target.value)}
+                  placeholder="e.g. 11:00 AM, 3:30 PM"
+                  className="w-full px-3 py-2 bg-secondary/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+              </div>
+
+              <div className="p-3 rounded-lg bg-neon-yellow/5 border border-neon-yellow/20 text-xs">
+                <p className="font-semibold neon-text-yellow mb-1">📩 Patient ko yeh message jayega:</p>
+                <p className="text-muted-foreground">
+                  "{rescheduleAppt.patientName} ji, aapka appointment reschedule ho gaya hai. Nayi Date: {newDate || "___"}, Naya Time: {newTime || "___"}. Please is time pe aayein."
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={handleReschedule}
+                disabled={!newDate || !newTime}
+                className="flex-1 py-2 rounded-lg bg-neon-yellow/10 neon-text-yellow text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
+              >
+                🔄 Reschedule & Notify
+              </button>
+              <button onClick={() => setRescheduleAppt(null)} className="flex-1 py-2 rounded-lg bg-secondary/50 text-xs text-muted-foreground">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Detail modal */}
       {selectedAppt && (
         <div className="fixed inset-0 bg-background/80 z-50 flex items-center justify-center p-4" onClick={() => setSelectedAppt(null)}>
           <div className="glass-panel rounded-xl border neon-border-cyan p-5 max-w-sm w-full animate-slide-in" onClick={(e) => e.stopPropagation()}>
@@ -128,7 +246,10 @@ export default function AppointmentsPage() {
               <div><span className="text-muted-foreground">Status:</span> <span className={`font-semibold capitalize ${statusConfig[selectedAppt.status]?.class}`}>{selectedAppt.status}</span></div>
               <div><span className="text-muted-foreground">Booked:</span> <span className="font-medium">{new Date(selectedAppt.createdAt).toLocaleString()}</span></div>
             </div>
-            <div className="flex gap-2 mt-4">
+            <div className="flex flex-wrap gap-2 mt-4">
+              {(selectedAppt.status === "pending" || selectedAppt.status === "confirmed") && (
+                <button onClick={() => openReschedule(selectedAppt)} className="flex-1 py-2 rounded-lg bg-neon-yellow/10 neon-text-yellow text-xs font-semibold">🔄 Reschedule</button>
+              )}
               {selectedAppt.status === "pending" && (
                 <>
                   <button onClick={() => { updateStatus(selectedAppt.id, "confirmed"); setSelectedAppt(null); }} className="flex-1 py-2 rounded-lg bg-neon-green/10 neon-text-green text-xs font-semibold">✅ Confirm</button>
@@ -178,11 +299,15 @@ export default function AppointmentsPage() {
                     {appt.status === "pending" && (
                       <>
                         <button onClick={(e) => { e.stopPropagation(); updateStatus(appt.id, "confirmed"); }} className="flex-1 py-1.5 rounded-lg bg-neon-green/10 text-[10px] font-semibold neon-text-green">✅ Confirm</button>
+                        <button onClick={(e) => openReschedule(appt, e)} className="flex-1 py-1.5 rounded-lg bg-neon-yellow/10 text-[10px] font-semibold neon-text-yellow">🔄 Reschedule</button>
                         <button onClick={(e) => { e.stopPropagation(); updateStatus(appt.id, "cancelled"); }} className="flex-1 py-1.5 rounded-lg bg-neon-pink/10 text-[10px] font-semibold neon-text-pink">❌ Cancel</button>
                       </>
                     )}
                     {appt.status === "confirmed" && (
-                      <button onClick={(e) => { e.stopPropagation(); updateStatus(appt.id, "visited"); }} className="flex-1 py-1.5 rounded-lg bg-neon-cyan/10 text-[10px] font-semibold neon-text-cyan">✅ Visited</button>
+                      <>
+                        <button onClick={(e) => { e.stopPropagation(); updateStatus(appt.id, "visited"); }} className="flex-1 py-1.5 rounded-lg bg-neon-cyan/10 text-[10px] font-semibold neon-text-cyan">✅ Visited</button>
+                        <button onClick={(e) => openReschedule(appt, e)} className="flex-1 py-1.5 rounded-lg bg-neon-yellow/10 text-[10px] font-semibold neon-text-yellow">🔄 Reschedule</button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -232,15 +357,23 @@ export default function AppointmentsPage() {
                                 <button onClick={() => updateStatus(appt.id, "confirmed")} className="p-1.5 rounded-lg hover:bg-neon-green/10 transition-colors" title="Confirm">
                                   <Check className="w-4 h-4 neon-text-green" />
                                 </button>
+                                <button onClick={() => openReschedule(appt)} className="p-1.5 rounded-lg hover:bg-neon-yellow/10 transition-colors" title="Reschedule">
+                                  <CalendarClock className="w-4 h-4 neon-text-yellow" />
+                                </button>
                                 <button onClick={() => updateStatus(appt.id, "cancelled")} className="p-1.5 rounded-lg hover:bg-neon-pink/10 transition-colors" title="Cancel">
                                   <X className="w-4 h-4 neon-text-pink" />
                                 </button>
                               </>
                             )}
                             {appt.status === "confirmed" && (
-                              <button onClick={() => updateStatus(appt.id, "visited")} className="p-1.5 rounded-lg hover:bg-neon-cyan/10 transition-colors" title="Mark Visited">
-                                <Clock className="w-4 h-4 neon-text-cyan" />
-                              </button>
+                              <>
+                                <button onClick={() => updateStatus(appt.id, "visited")} className="p-1.5 rounded-lg hover:bg-neon-cyan/10 transition-colors" title="Mark Visited">
+                                  <Clock className="w-4 h-4 neon-text-cyan" />
+                                </button>
+                                <button onClick={() => openReschedule(appt)} className="p-1.5 rounded-lg hover:bg-neon-yellow/10 transition-colors" title="Reschedule">
+                                  <CalendarClock className="w-4 h-4 neon-text-yellow" />
+                                </button>
+                              </>
                             )}
                             <button onClick={() => setSelectedAppt(appt)} className="p-1.5 rounded-lg hover:bg-secondary/50 transition-colors" title="View Details">
                               <Eye className="w-4 h-4 text-muted-foreground" />

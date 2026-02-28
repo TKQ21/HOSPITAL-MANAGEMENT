@@ -82,6 +82,31 @@ export default function PatientChatPage() {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Check for reschedule notifications for this patient
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const notifications = JSON.parse(localStorage.getItem("clinic_notifications") || "[]");
+      const unread = notifications.filter((n: any) => !n.read);
+      if (unread.length > 0) {
+        unread.forEach((n: any) => {
+          setMessages((prev) => {
+            const exists = prev.some((m) => m.text.includes(n.newDate) && m.text.includes(n.patientName) && m.text.includes("reschedule"));
+            if (exists) return prev;
+            return [...prev, {
+              id: Date.now() + Math.random(),
+              text: n.message,
+              sender: "ai" as const,
+              timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            }];
+          });
+        });
+        const updated = notifications.map((n: any) => ({ ...n, read: true }));
+        localStorage.setItem("clinic_notifications", JSON.stringify(updated));
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
   const addAIMessage = (text: string) => {
     const aiMsg: Message = {
       id: Date.now() + 1,
