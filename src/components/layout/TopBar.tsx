@@ -1,5 +1,6 @@
-import { Menu, Moon, Sun, Bell } from "lucide-react";
+import { Menu, Moon, Sun, Bell, LogOut } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface TopBarProps {
   onMenuToggle: () => void;
@@ -7,10 +8,32 @@ interface TopBarProps {
 
 export function TopBar({ onMenuToggle }: TopBarProps) {
   const [dark, setDark] = useState(true);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [showNotif, setShowNotif] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
   }, [dark]);
+
+  // Poll for new appointments
+  useEffect(() => {
+    const check = () => {
+      const appts = JSON.parse(localStorage.getItem("clinic_appointments") || "[]");
+      const pending = appts.filter((a: any) => a.status === "pending");
+      setPendingCount(pending.length);
+    };
+    check();
+    const interval = setInterval(check, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("clinic_auth");
+    navigate("/login");
+  };
+
+  const pendingAppts = JSON.parse(localStorage.getItem("clinic_appointments") || "[]").filter((a: any) => a.status === "pending");
 
   return (
     <header className="h-14 glass-panel border-b flex items-center justify-between px-4 z-10">
@@ -21,10 +44,41 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
       <div className="flex-1" />
 
       <div className="flex items-center gap-2">
-        <button className="relative p-2 rounded-lg hover:bg-secondary/50 transition-colors">
-          <Bell className="w-5 h-5 text-muted-foreground" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-neon-pink animate-pulse-neon" />
-        </button>
+        {/* Notification bell */}
+        <div className="relative">
+          <button
+            onClick={() => setShowNotif(!showNotif)}
+            className="relative p-2 rounded-lg hover:bg-secondary/50 transition-colors"
+          >
+            <Bell className="w-5 h-5 text-muted-foreground" />
+            {pendingCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-destructive flex items-center justify-center animate-pulse-neon">
+                <span className="text-[10px] font-bold text-destructive-foreground">{pendingCount}</span>
+              </span>
+            )}
+          </button>
+
+          {showNotif && (
+            <div className="absolute right-0 top-12 w-72 glass-panel rounded-xl border neon-border-cyan p-3 z-50 animate-slide-in">
+              <h3 className="text-xs font-display font-bold neon-text-cyan mb-2">NOTIFICATIONS</h3>
+              {pendingAppts.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-2">No new requests</p>
+              ) : (
+                <div className="space-y-2 max-h-60 overflow-y-auto scrollbar-thin">
+                  {pendingAppts.slice(0, 5).map((a: any) => (
+                    <div key={a.id} className="p-2 rounded-lg bg-secondary/30 text-xs">
+                      <p className="font-medium">🆕 {a.patientName}</p>
+                      <p className="text-muted-foreground">{a.reason} • {a.date} {a.time}</p>
+                    </div>
+                  ))}
+                  {pendingAppts.length > 5 && (
+                    <p className="text-[10px] text-muted-foreground text-center">+{pendingAppts.length - 5} more</p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         <button
           onClick={() => setDark(!dark)}
@@ -40,6 +94,15 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
         <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center neon-glow-cyan">
           <span className="text-xs font-display font-bold neon-text-cyan">DR</span>
         </div>
+
+        {/* Logout */}
+        <button
+          onClick={handleLogout}
+          className="p-2 rounded-lg hover:bg-destructive/20 transition-colors group"
+          title="Logout"
+        >
+          <LogOut className="w-5 h-5 text-muted-foreground group-hover:text-destructive" />
+        </button>
       </div>
     </header>
   );

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Check, X, Clock, Search, RefreshCw } from "lucide-react";
+import { Check, X, Clock, Search, RefreshCw, Eye } from "lucide-react";
 
 interface Appointment {
   id: number;
@@ -24,20 +24,38 @@ export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [selectedAppt, setSelectedAppt] = useState<Appointment | null>(null);
 
   const loadAppointments = () => {
     const stored = localStorage.getItem("clinic_appointments");
-    if (stored) {
-      setAppointments(JSON.parse(stored));
-    }
+    if (stored) setAppointments(JSON.parse(stored));
   };
 
   useEffect(() => {
     loadAppointments();
+    const interval = setInterval(loadAppointments, 3000);
+    return () => clearInterval(interval);
   }, []);
 
   const updateStatus = (id: number, status: Appointment["status"]) => {
-    const updated = appointments.map((a) => (a.id === id ? { ...a, status } : a));
+    const updated = appointments.map((a) => {
+      if (a.id === id) {
+        const upd = { ...a, status };
+        // Update patient visit count when visited
+        if (status === "visited") {
+          const patients = JSON.parse(localStorage.getItem("clinic_patients") || "[]");
+          const updatedPatients = patients.map((p: any) => {
+            if (p.phone === a.phone) {
+              return { ...p, visits: (p.visits || 0) + 1, lastVisit: new Date().toISOString() };
+            }
+            return p;
+          });
+          localStorage.setItem("clinic_patients", JSON.stringify(updatedPatients));
+        }
+        return upd;
+      }
+      return a;
+    });
     setAppointments(updated);
     localStorage.setItem("clinic_appointments", JSON.stringify(updated));
   };
@@ -52,15 +70,15 @@ export default function AppointmentsPage() {
   });
 
   return (
-    <div className="space-y-6 animate-slide-in">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6 animate-slide-in">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl font-bold neon-text-pink tracking-wider">Appointments</h1>
-          <p className="text-muted-foreground text-sm mt-1">Manage appointment requests from patients</p>
+          <h1 className="font-display text-xl sm:text-2xl font-bold neon-text-pink tracking-wider">Appointments</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-1">All appointment requests & history</p>
         </div>
         <button
           onClick={loadAppointments}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg glass-panel border neon-border-cyan hover:bg-secondary/50 transition-all text-sm"
+          className="flex items-center gap-2 px-3 py-2 rounded-lg glass-panel border neon-border-cyan hover:bg-secondary/50 transition-all text-sm self-start"
         >
           <RefreshCw className="w-4 h-4 neon-text-cyan" />
           <span className="neon-text-cyan text-xs font-display">Refresh</span>
@@ -68,8 +86,8 @@ export default function AppointmentsPage() {
       </div>
 
       {/* Search & Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
+      <div className="flex flex-col gap-3">
+        <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             value={search}
@@ -78,12 +96,12 @@ export default function AppointmentsPage() {
             className="w-full pl-10 pr-4 py-2.5 bg-secondary/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {["all", "pending", "confirmed", "cancelled", "visited"].map((s) => (
             <button
               key={s}
               onClick={() => setFilterStatus(s)}
-              className={`px-3 py-2 rounded-lg text-xs font-medium capitalize transition-all border ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-all border ${
                 filterStatus === s
                   ? "glass-panel neon-border-cyan neon-text-cyan"
                   : "border-border text-muted-foreground hover:text-foreground hover:bg-secondary/50"
@@ -95,89 +113,148 @@ export default function AppointmentsPage() {
         </div>
       </div>
 
-      {/* Table */}
+      {/* Detail modal for mobile */}
+      {selectedAppt && (
+        <div className="fixed inset-0 bg-background/80 z-50 flex items-center justify-center p-4" onClick={() => setSelectedAppt(null)}>
+          <div className="glass-panel rounded-xl border neon-border-cyan p-5 max-w-sm w-full animate-slide-in" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-display text-sm font-bold neon-text-cyan mb-4">APPOINTMENT DETAILS</h3>
+            <div className="space-y-3 text-sm">
+              <div><span className="text-muted-foreground">Name:</span> <span className="font-medium">{selectedAppt.patientName}</span></div>
+              <div><span className="text-muted-foreground">Phone:</span> <span className="font-medium">{selectedAppt.phone}</span></div>
+              <div><span className="text-muted-foreground">Problem:</span> <span className="font-medium">{selectedAppt.reason || "—"}</span></div>
+              <div><span className="text-muted-foreground">Date:</span> <span className="font-medium">{selectedAppt.date}</span></div>
+              <div><span className="text-muted-foreground">Time:</span> <span className="font-medium">{selectedAppt.time}</span></div>
+              <div><span className="text-muted-foreground">Source:</span> <span className="font-medium">{selectedAppt.source}</span></div>
+              <div><span className="text-muted-foreground">Status:</span> <span className={`font-semibold capitalize ${statusConfig[selectedAppt.status]?.class}`}>{selectedAppt.status}</span></div>
+              <div><span className="text-muted-foreground">Booked:</span> <span className="font-medium">{new Date(selectedAppt.createdAt).toLocaleString()}</span></div>
+            </div>
+            <div className="flex gap-2 mt-4">
+              {selectedAppt.status === "pending" && (
+                <>
+                  <button onClick={() => { updateStatus(selectedAppt.id, "confirmed"); setSelectedAppt(null); }} className="flex-1 py-2 rounded-lg bg-neon-green/10 neon-text-green text-xs font-semibold">✅ Confirm</button>
+                  <button onClick={() => { updateStatus(selectedAppt.id, "cancelled"); setSelectedAppt(null); }} className="flex-1 py-2 rounded-lg bg-neon-pink/10 neon-text-pink text-xs font-semibold">❌ Cancel</button>
+                </>
+              )}
+              {selectedAppt.status === "confirmed" && (
+                <button onClick={() => { updateStatus(selectedAppt.id, "visited"); setSelectedAppt(null); }} className="flex-1 py-2 rounded-lg bg-neon-cyan/10 neon-text-cyan text-xs font-semibold">✅ Mark Visited</button>
+              )}
+              <button onClick={() => setSelectedAppt(null)} className="flex-1 py-2 rounded-lg bg-secondary/50 text-xs text-muted-foreground">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cards for mobile, table for desktop */}
       {filtered.length === 0 ? (
         <div className="glass-panel rounded-xl border neon-border-pink p-12 text-center">
           <p className="text-muted-foreground text-sm">Koi appointment nahi hai abhi.</p>
           <p className="text-muted-foreground text-xs mt-1">Jab patient AI chatbot se appointment request karega, yahan dikhega.</p>
         </div>
       ) : (
-        <div className="glass-panel rounded-xl border neon-border-pink overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border/50">
-                  <th className="text-left p-4 text-xs font-display font-semibold neon-text-pink tracking-wider">PATIENT</th>
-                  <th className="text-left p-4 text-xs font-display font-semibold neon-text-pink tracking-wider">PHONE</th>
-                  <th className="text-left p-4 text-xs font-display font-semibold neon-text-pink tracking-wider">REASON / PROBLEM</th>
-                  <th className="text-left p-4 text-xs font-display font-semibold neon-text-pink tracking-wider">DATE</th>
-                  <th className="text-left p-4 text-xs font-display font-semibold neon-text-pink tracking-wider">TIME</th>
-                  <th className="text-left p-4 text-xs font-display font-semibold neon-text-pink tracking-wider">SOURCE</th>
-                  <th className="text-left p-4 text-xs font-display font-semibold neon-text-pink tracking-wider">STATUS</th>
-                  <th className="text-left p-4 text-xs font-display font-semibold neon-text-pink tracking-wider">ACTIONS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((appt) => {
-                  const sc = statusConfig[appt.status];
-                  return (
-                    <tr key={appt.id} className="border-b border-border/30 hover:bg-secondary/30 transition-colors">
-                      <td className="p-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                            <span className="text-xs font-bold neon-text-cyan">{appt.patientName.charAt(0)}</span>
-                          </div>
-                          <span className="text-sm font-medium">{appt.patientName}</span>
-                        </div>
-                      </td>
-                      <td className="p-4 text-sm text-muted-foreground">{appt.phone}</td>
-                      <td className="p-4 text-sm text-muted-foreground">{appt.reason || "—"}</td>
-                      <td className="p-4 text-sm text-muted-foreground">{appt.date}</td>
-                      <td className="p-4 text-sm text-muted-foreground">{appt.time}</td>
-                      <td className="p-4">
-                        <span className="text-xs px-2 py-1 rounded-full bg-secondary/50">{appt.source}</span>
-                      </td>
-                      <td className="p-4">
-                        <span className={`text-xs font-semibold px-2 py-1 rounded-full ${sc.bg} ${sc.class}`}>
-                          {sc.label}
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        {appt.status === "pending" && (
-                          <div className="flex gap-1">
-                            <button
-                              onClick={() => updateStatus(appt.id, "confirmed")}
-                              className="p-1.5 rounded-lg hover:bg-neon-green/10 transition-colors"
-                              title="Confirm"
-                            >
-                              <Check className="w-4 h-4 neon-text-green" />
-                            </button>
-                            <button
-                              onClick={() => updateStatus(appt.id, "cancelled")}
-                              className="p-1.5 rounded-lg hover:bg-neon-pink/10 transition-colors"
-                              title="Cancel"
-                            >
-                              <X className="w-4 h-4 neon-text-pink" />
-                            </button>
-                          </div>
-                        )}
-                        {appt.status === "confirmed" && (
-                          <button
-                            onClick={() => updateStatus(appt.id, "visited")}
-                            className="p-1.5 rounded-lg hover:bg-neon-cyan/10 transition-colors"
-                            title="Mark Visited"
-                          >
-                            <Clock className="w-4 h-4 neon-text-cyan" />
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+        <>
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-3">
+            {filtered.map((appt) => {
+              const sc = statusConfig[appt.status];
+              return (
+                <div key={appt.id} className="glass-panel rounded-xl border border-border/50 p-4" onClick={() => setSelectedAppt(appt)}>
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
+                        <span className="text-xs font-bold neon-text-cyan">{appt.patientName.charAt(0)}</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{appt.patientName}</p>
+                        <p className="text-xs text-muted-foreground">{appt.phone}</p>
+                      </div>
+                    </div>
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${sc.bg} ${sc.class} capitalize`}>{sc.label}</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground space-y-0.5">
+                    <p>🏥 {appt.reason || "General"}</p>
+                    <p>📅 {appt.date} • 🕐 {appt.time}</p>
+                  </div>
+                  <div className="flex gap-2 mt-3">
+                    {appt.status === "pending" && (
+                      <>
+                        <button onClick={(e) => { e.stopPropagation(); updateStatus(appt.id, "confirmed"); }} className="flex-1 py-1.5 rounded-lg bg-neon-green/10 text-[10px] font-semibold neon-text-green">✅ Confirm</button>
+                        <button onClick={(e) => { e.stopPropagation(); updateStatus(appt.id, "cancelled"); }} className="flex-1 py-1.5 rounded-lg bg-neon-pink/10 text-[10px] font-semibold neon-text-pink">❌ Cancel</button>
+                      </>
+                    )}
+                    {appt.status === "confirmed" && (
+                      <button onClick={(e) => { e.stopPropagation(); updateStatus(appt.id, "visited"); }} className="flex-1 py-1.5 rounded-lg bg-neon-cyan/10 text-[10px] font-semibold neon-text-cyan">✅ Visited</button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        </div>
+
+          {/* Desktop table */}
+          <div className="hidden md:block glass-panel rounded-xl border neon-border-pink overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border/50">
+                    <th className="text-left p-4 text-xs font-display font-semibold neon-text-pink tracking-wider">PATIENT</th>
+                    <th className="text-left p-4 text-xs font-display font-semibold neon-text-pink tracking-wider">PHONE</th>
+                    <th className="text-left p-4 text-xs font-display font-semibold neon-text-pink tracking-wider">REASON</th>
+                    <th className="text-left p-4 text-xs font-display font-semibold neon-text-pink tracking-wider">DATE</th>
+                    <th className="text-left p-4 text-xs font-display font-semibold neon-text-pink tracking-wider">TIME</th>
+                    <th className="text-left p-4 text-xs font-display font-semibold neon-text-pink tracking-wider">STATUS</th>
+                    <th className="text-left p-4 text-xs font-display font-semibold neon-text-pink tracking-wider">ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((appt) => {
+                    const sc = statusConfig[appt.status];
+                    return (
+                      <tr key={appt.id} className="border-b border-border/30 hover:bg-secondary/30 transition-colors">
+                        <td className="p-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                              <span className="text-xs font-bold neon-text-cyan">{appt.patientName.charAt(0)}</span>
+                            </div>
+                            <span className="text-sm font-medium">{appt.patientName}</span>
+                          </div>
+                        </td>
+                        <td className="p-4 text-sm text-muted-foreground">{appt.phone}</td>
+                        <td className="p-4 text-sm text-muted-foreground">{appt.reason || "—"}</td>
+                        <td className="p-4 text-sm text-muted-foreground">{appt.date}</td>
+                        <td className="p-4 text-sm text-muted-foreground">{appt.time}</td>
+                        <td className="p-4">
+                          <span className={`text-xs font-semibold px-2 py-1 rounded-full ${sc.bg} ${sc.class}`}>{sc.label}</span>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex gap-1">
+                            {appt.status === "pending" && (
+                              <>
+                                <button onClick={() => updateStatus(appt.id, "confirmed")} className="p-1.5 rounded-lg hover:bg-neon-green/10 transition-colors" title="Confirm">
+                                  <Check className="w-4 h-4 neon-text-green" />
+                                </button>
+                                <button onClick={() => updateStatus(appt.id, "cancelled")} className="p-1.5 rounded-lg hover:bg-neon-pink/10 transition-colors" title="Cancel">
+                                  <X className="w-4 h-4 neon-text-pink" />
+                                </button>
+                              </>
+                            )}
+                            {appt.status === "confirmed" && (
+                              <button onClick={() => updateStatus(appt.id, "visited")} className="p-1.5 rounded-lg hover:bg-neon-cyan/10 transition-colors" title="Mark Visited">
+                                <Clock className="w-4 h-4 neon-text-cyan" />
+                              </button>
+                            )}
+                            <button onClick={() => setSelectedAppt(appt)} className="p-1.5 rounded-lg hover:bg-secondary/50 transition-colors" title="View Details">
+                              <Eye className="w-4 h-4 text-muted-foreground" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
