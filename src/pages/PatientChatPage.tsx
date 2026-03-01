@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, Activity, Moon, Sun } from "lucide-react";
+import { Send, Bot, User, Activity, Moon, Sun, LogOut } from "lucide-react";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Message {
   id: number;
@@ -20,58 +21,41 @@ interface CollectionState {
   };
 }
 
-const initialMessages: Message[] = [
-  {
-    id: 1,
-    text: "Hello! 👋 Main City Health Clinic ka AI assistant hoon. Aapki kya help kar sakta hoon?\n\n1. Appointment book karna\n2. Fees jaanna\n3. Clinic timings\n4. Location / address",
-    sender: "ai",
-    timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-  },
-];
+const timeNow = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-function getStoredAppointments(): any[] {
-  const stored = localStorage.getItem("clinic_appointments");
-  return stored ? JSON.parse(stored) : [];
+// Validation helpers
+function isValidPhone(val: string): boolean {
+  const digits = val.replace(/\D/g, "");
+  return digits.length === 10;
 }
 
-function saveAppointment(data: any) {
-  const appointments = getStoredAppointments();
-  const newAppt = {
-    id: Date.now(),
-    patientName: data.name,
-    phone: data.phone,
-    reason: data.reason,
-    date: data.date,
-    time: data.time,
-    status: "pending",
-    source: "Web",
-    createdAt: new Date().toISOString(),
-  };
-  appointments.push(newAppt);
-  localStorage.setItem("clinic_appointments", JSON.stringify(appointments));
+function isValidDate(val: string): boolean {
+  // Accept formats: YYYY-MM-DD, DD-MM-YYYY, DD/MM/YYYY, or natural like "kal", "monday" etc
+  const natural = ["kal", "aaj", "parso", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday", "somvar", "mangalvar", "budhvar", "guruvar", "shukravar", "shanivar"];
+  if (natural.some(n => val.toLowerCase().includes(n))) return true;
+  // Check date pattern
+  const datePattern = /^\d{4}-\d{2}-\d{2}$|^\d{2}[-\/]\d{2}[-\/]\d{4}$|^\d{1,2}\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+\d{4}$/i;
+  if (datePattern.test(val.trim())) return true;
+  // Try parsing
+  const d = new Date(val);
+  return !isNaN(d.getTime());
+}
 
-  const patients = JSON.parse(localStorage.getItem("clinic_patients") || "[]");
-  const exists = patients.find((p: any) => p.phone === data.phone);
-  if (!exists) {
-    patients.push({
-      id: Date.now(),
-      name: data.name,
-      phone: data.phone,
-      visits: 0,
-      lastVisit: null,
-      notes: data.reason,
-      followUp: null,
-      createdAt: new Date().toISOString(),
-    });
-    localStorage.setItem("clinic_patients", JSON.stringify(patients));
-  }
+function isValidTime(val: string): boolean {
+  // Accept: 10:00 AM, 3:30 PM, 10:00, 15:30, etc
+  const timePattern = /^\d{1,2}:\d{2}\s*(am|pm)?$/i;
+  if (timePattern.test(val.trim())) return true;
+  // Natural
+  const natural = ["subah", "dopahar", "sham", "morning", "afternoon", "evening"];
+  return natural.some(n => val.toLowerCase().includes(n));
 }
 
 export default function PatientChatPage() {
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [collection, setCollection] = useState<CollectionState>({ step: "idle", data: {} });
   const [dark, setDark] = useState(true);
+  const [userId, setUserId] = useState<string>("");
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -82,39 +66,100 @@ export default function PatientChatPage() {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Check for reschedule notifications for this patient
+  // Get user and show initial message
   useEffect(() => {
-    const interval = setInterval(() => {
-      const notifications = JSON.parse(localStorage.getItem("clinic_notifications") || "[]");
-      const unread = notifications.filter((n: any) => !n.read);
-      if (unread.length > 0) {
-        unread.forEach((n: any) => {
-          setMessages((prev) => {
-            const exists = prev.some((m) => m.text.includes(n.newDate) && m.text.includes(n.patientName) && m.text.includes("reschedule"));
-            if (exists) return prev;
-            return [...prev, {
-              id: Date.now() + Math.random(),
-              text: n.message,
-              sender: "ai" as const,
-              timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-            }];
-          });
-        });
-        const updated = notifications.map((n: any) => ({ ...n, read: true }));
-        localStorage.setItem("clinic_notifications", JSON.stringify(updated));
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUserId(session.user.id);
+        setMessages([{
+          id: 1,
+          text: `Hello! 👋 Main MEDI ASSIST ka AI assistant hoon. Aapki kya help kar sakta hoon?\n\n1. Appointment book karna\n2. Fees jaanna\n3. Clinic timings\n4. Location / address`,
+          sender: "ai",
+          timestamp: timeNow(),
+        }]);
       }
-    }, 3000);
-    return () => clearInterval(interval);
+    });
   }, []);
+
+  // Listen for reschedule notifications via realtime
+  useEffect(() => {
+    if (!userId) return;
+    
+    const channel = supabase
+      .channel('patient-notifications')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'notifications',
+        filter: `user_id=eq.${userId}`,
+      }, (payload) => {
+        const n = payload.new as any;
+        setMessages(prev => [...prev, {
+          id: Date.now() + Math.random(),
+          text: n.message,
+          sender: "ai" as const,
+          timestamp: timeNow(),
+        }]);
+        // Mark as read
+        supabase.from('notifications').update({ is_read: true }).eq('id', n.id).then();
+      })
+      .subscribe();
+
+    // Also check existing unread notifications
+    supabase.from('notifications').select('*').eq('user_id', userId).eq('is_read', false).then(({ data }) => {
+      if (data && data.length > 0) {
+        data.forEach(n => {
+          setMessages(prev => [...prev, {
+            id: Date.now() + Math.random(),
+            text: n.message,
+            sender: "ai" as const,
+            timestamp: timeNow(),
+          }]);
+        });
+        // Mark all read
+        supabase.from('notifications').update({ is_read: true }).eq('user_id', userId).eq('is_read', false).then();
+      }
+    });
+
+    return () => { supabase.removeChannel(channel); };
+  }, [userId]);
 
   const addAIMessage = (text: string) => {
     const aiMsg: Message = {
       id: Date.now() + 1,
       text,
       sender: "ai",
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      timestamp: timeNow(),
     };
-    setTimeout(() => setMessages((prev) => [...prev, aiMsg]), 600);
+    setTimeout(() => setMessages(prev => [...prev, aiMsg]), 600);
+  };
+
+  const saveAppointment = async (data: CollectionState["data"]) => {
+    // Save to database
+    const { error } = await supabase.from('appointments').insert({
+      user_id: userId,
+      patient_name: data.name!,
+      phone: data.phone!,
+      reason: data.reason!,
+      appointment_date: data.date!,
+      appointment_time: data.time!,
+    });
+
+    if (error) {
+      console.error("Error saving appointment:", error);
+      return;
+    }
+
+    // Check if patient exists, if not create
+    const { data: existing } = await supabase.from('patients').select('id').eq('phone', data.phone!).eq('user_id', userId).maybeSingle();
+    if (!existing) {
+      await supabase.from('patients').insert({
+        user_id: userId,
+        name: data.name!,
+        phone: data.phone!,
+        notes: data.reason,
+      });
+    }
   };
 
   const processInput = (text: string) => {
@@ -125,31 +170,48 @@ export default function PatientChatPage() {
 
       switch (collection.step) {
         case "name":
-          newData.name = text.trim();
-          setCollection({ step: "phone", data: newData });
-          addAIMessage(`Shukriya ${newData.name}! 📱\n\nAb aapka phone number bataiye (10 digit):`);
-          return;
-        case "phone":
-          const phoneClean = text.replace(/\D/g, "");
-          if (phoneClean.length < 10) {
-            addAIMessage("Phone number 10 digit ka hona chahiye. Please dubara enter karein:");
+          // Name should be text only, no numbers
+          if (/^\d+$/.test(text.trim())) {
+            addAIMessage("❌ Invalid name! Sirf apna naam likhein, numbers nahi. Please dubara enter karein:");
             return;
           }
-          newData.phone = phoneClean.slice(-10);
+          newData.name = text.trim();
+          setCollection({ step: "phone", data: newData });
+          addAIMessage(`Shukriya ${newData.name}! 📱\n\nAb aapka mobile number bataiye (sirf 10 digit):`);
+          return;
+        case "phone":
+          if (!isValidPhone(text)) {
+            addAIMessage("❌ Invalid mobile number! Sirf 10 digit ka number enter karein (jaise: 9876543210). Koi text ya extra digit nahi:");
+            return;
+          }
+          newData.phone = text.replace(/\D/g, "").slice(-10);
           setCollection({ step: "reason", data: newData });
           addAIMessage("Aap kis problem / bimari ke liye doctor se milna chahte hain?\n\nFor example: Bukhar, Pet dard, Follow-up, Report dikhana, General check-up, etc.");
           return;
         case "reason":
+          // Reason should be text, not just numbers
+          if (/^\d+$/.test(text.trim())) {
+            addAIMessage("❌ Invalid reason! Apni problem ya bimari ka naam likhein. Numbers nahi:");
+            return;
+          }
           newData.reason = text.trim();
           setCollection({ step: "date", data: newData });
-          addAIMessage("Kaunsi date pe aana chahenge?\n\nFor example: Kal, 2026-03-05, Monday, etc.");
+          addAIMessage("📅 Kaunsi date pe aana chahenge?\n\nFormat: YYYY-MM-DD (jaise: 2026-03-05)\nYa: kal, parso, Monday, etc.");
           return;
         case "date":
+          if (!isValidDate(text)) {
+            addAIMessage("❌ Invalid date! Sahi date enter karein.\n\nFormat: YYYY-MM-DD (jaise: 2026-03-05)\nYa: kal, parso, Monday, etc.");
+            return;
+          }
           newData.date = text.trim();
           setCollection({ step: "time", data: newData });
-          addAIMessage("Kis time pe aana chahenge?\n\nClinic timings: 10:00 AM - 6:00 PM\nLunch: 1:00 PM - 2:00 PM\n\nFor example: 11:00 AM, 3:30 PM, etc.");
+          addAIMessage("🕐 Kis time pe aana chahenge?\n\nClinic timings: 10:00 AM - 6:00 PM\nLunch: 1:00 PM - 2:00 PM\n\nFormat: HH:MM AM/PM (jaise: 11:00 AM, 3:30 PM)");
           return;
         case "time":
+          if (!isValidTime(text)) {
+            addAIMessage("❌ Invalid time! Sahi time enter karein.\n\nFormat: HH:MM AM/PM (jaise: 11:00 AM, 3:30 PM)\nClinic: 10:00 AM - 6:00 PM");
+            return;
+          }
           newData.time = text.trim();
           setCollection({ step: "confirm", data: newData });
           addAIMessage(
@@ -173,22 +235,22 @@ export default function PatientChatPage() {
 
     if (lower.includes("appointment") || lower.includes("book") || lower.includes("milna") || lower.includes("dikhana") || lower.match(/^1$/)) {
       setCollection({ step: "name", data: {} });
-      addAIMessage("Zaroor! Appointment request ke liye kuch details chahiye.\n\nSabse pehle, aapka poora naam bataiye:");
+      addAIMessage("Zaroor! Appointment ke liye kuch details chahiye.\n\nSabse pehle, aapka poora naam bataiye:");
       return;
     }
 
     if (lower.includes("fee") || lower.includes("charge") || lower.includes("cost") || lower.includes("paisa") || lower.includes("kitna") || lower.match(/^2$/)) {
-      addAIMessage("💰 Dr. Sharma ki consultation fees:\n\n• First visit: ₹500\n• Follow-up (7 din ke andar): ₹200\n\nKya aap appointment book karna chahenge?");
+      addAIMessage("💰 Consultation fees:\n\n• First visit: ₹500\n• Follow-up (7 din ke andar): ₹200\n\nKya aap appointment book karna chahenge?");
       return;
     }
 
     if (lower.includes("time") || lower.includes("timing") || lower.includes("open") || lower.includes("kab") || lower.match(/^3$/)) {
-      addAIMessage("🕐 City Health Clinic timings:\n\n• Monday - Saturday: 10:00 AM - 6:00 PM\n• Sunday: Closed\n• Lunch: 1:00 PM - 2:00 PM\n\nKya appointment book karna hai?");
+      addAIMessage("🕐 Clinic timings:\n\n• Monday - Saturday: 10:00 AM - 6:00 PM\n• Sunday: Closed\n• Lunch: 1:00 PM - 2:00 PM\n\nKya appointment book karna hai?");
       return;
     }
 
     if (lower.includes("location") || lower.includes("address") || lower.includes("kahan") || lower.match(/^4$/)) {
-      addAIMessage("📍 City Health Clinic\n123 Medical Road, Sector 5\nNear Central Market\n\nGoogle Maps: https://maps.google.com\n\nKya aur kuch help chahiye?");
+      addAIMessage("📍 City Health Clinic\n123 Medical Road, Sector 5\nNear Central Market\n\nKya aur kuch help chahiye?");
       return;
     }
 
@@ -206,17 +268,20 @@ export default function PatientChatPage() {
       id: Date.now(),
       text: input,
       sender: "patient",
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      timestamp: timeNow(),
     };
-    setMessages((prev) => [...prev, userMsg]);
+    setMessages(prev => [...prev, userMsg]);
     const currentInput = input;
     setInput("");
     processInput(currentInput);
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
+
   return (
     <div className="min-h-screen stars-bg flex flex-col relative overflow-hidden">
-      {/* Shining stars */}
       <div className="stars-layer" />
       <div className="stars-layer stars-layer-2" />
       <div className="stars-layer stars-layer-3" />
@@ -233,48 +298,30 @@ export default function PatientChatPage() {
           </div>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
-          <button
-            onClick={() => setDark(!dark)}
-            className="p-2 rounded-lg hover:bg-secondary/50 transition-colors"
-          >
-            {dark ? <Sun className="w-4 h-4 sm:w-5 sm:h-5 text-neon-yellow" /> : <Moon className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />}
+          <button onClick={() => setDark(!dark)} className="p-2 rounded-lg hover:bg-secondary/50 transition-colors">
+            {dark ? <Sun className="w-4 h-4 sm:w-5 sm:h-5 neon-text-yellow" /> : <Moon className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />}
           </button>
-          <Link
-            to="/login"
-            className="text-[9px] sm:text-[10px] px-2 sm:px-3 py-1.5 rounded-lg border border-border hover:bg-secondary/50 text-muted-foreground transition-colors"
-          >
+          <Link to="/login" className="text-[9px] sm:text-[10px] px-2 sm:px-3 py-1.5 rounded-lg border border-border hover:bg-secondary/50 text-muted-foreground transition-colors">
             Doctor Login
           </Link>
+          <button onClick={handleLogout} className="p-2 rounded-lg hover:bg-destructive/20 transition-colors" title="Logout">
+            <LogOut className="w-4 h-4 text-muted-foreground" />
+          </button>
         </div>
       </header>
 
       {/* Chat area */}
       <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 scrollbar-thin max-w-3xl mx-auto w-full relative z-10">
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex gap-2 sm:gap-3 animate-slide-in ${msg.sender === "patient" ? "flex-row-reverse" : ""}`}
-          >
-            <div
-              className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shrink-0 ${
-                msg.sender === "ai"
-                  ? "bg-primary/20 neon-glow-green"
-                  : "bg-neon-pink/20 neon-glow-pink"
-              }`}
-            >
-              {msg.sender === "ai" ? (
-                <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 neon-text-green" />
-              ) : (
-                <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 neon-text-pink" />
-              )}
+        {messages.map(msg => (
+          <div key={msg.id} className={`flex gap-2 sm:gap-3 animate-slide-in ${msg.sender === "patient" ? "flex-row-reverse" : ""}`}>
+            <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shrink-0 ${
+              msg.sender === "ai" ? "bg-primary/20 neon-glow-green" : "bg-neon-pink/20 neon-glow-pink"
+            }`}>
+              {msg.sender === "ai" ? <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 neon-text-green" /> : <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 neon-text-pink" />}
             </div>
-            <div
-              className={`max-w-[80%] sm:max-w-[75%] rounded-xl p-2.5 sm:p-3 ${
-                msg.sender === "ai"
-                  ? "glass-panel border neon-border-green"
-                  : "bg-primary/10 border border-primary/30"
-              }`}
-            >
+            <div className={`max-w-[80%] sm:max-w-[75%] rounded-xl p-2.5 sm:p-3 ${
+              msg.sender === "ai" ? "glass-panel border neon-border-green" : "bg-primary/10 border border-primary/30"
+            }`}>
               <p className="text-xs sm:text-sm whitespace-pre-line">{msg.text}</p>
               <p className="text-[9px] sm:text-[10px] text-muted-foreground mt-1">{msg.timestamp}</p>
             </div>
@@ -288,15 +335,12 @@ export default function PatientChatPage() {
         <div className="flex gap-2">
           <input
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && send()}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && send()}
             placeholder="Apna message type karein..."
             className="flex-1 bg-secondary/50 border border-border rounded-lg px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground"
           />
-          <button
-            onClick={send}
-            className="p-2 sm:p-2.5 rounded-lg bg-primary/20 hover:bg-primary/30 transition-colors neon-glow-green"
-          >
+          <button onClick={send} className="p-2 sm:p-2.5 rounded-lg bg-primary/20 hover:bg-primary/30 transition-colors neon-glow-green">
             <Send className="w-4 h-4 sm:w-5 sm:h-5 neon-text-green" />
           </button>
         </div>
