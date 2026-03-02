@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Activity, Eye, EyeOff, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
-const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,15}$/;
+
 
 export default function AuthPage() {
   const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
@@ -46,8 +46,8 @@ export default function AuthPage() {
         if (error) throw error;
       } else {
         // Signup
-        if (!PASSWORD_REGEX.test(password)) {
-          setError("Password must be 8-15 characters with at least 1 uppercase, 1 lowercase, 1 digit & 1 special character");
+        if (password.length < 6) {
+          setError("Password must be at least 6 characters");
           setLoading(false);
           return;
         }
@@ -179,7 +179,7 @@ export default function AuthPage() {
                     type={showPw ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="8-15 chars, A-z, 0-9, special"
+                    placeholder="Enter any password (min 6 chars)"
                     required
                     className="w-full px-4 py-2.5 pr-10 bg-secondary/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
@@ -187,7 +187,7 @@ export default function AuthPage() {
                     {showPw ? <EyeOff className="w-4 h-4 text-muted-foreground" /> : <Eye className="w-4 h-4 text-muted-foreground" />}
                   </button>
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-1">Min 8, Max 15 chars • 1 uppercase • 1 lowercase • 1 digit • 1 special char</p>
+                <p className="text-[10px] text-muted-foreground mt-1">Minimum 6 characters</p>
               </div>
             </>
           )}
