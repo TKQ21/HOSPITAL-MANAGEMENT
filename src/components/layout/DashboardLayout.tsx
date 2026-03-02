@@ -15,9 +15,12 @@ export default function DashboardLayout() {
   }, [navigate]);
 
   return (
-    <div className="flex h-screen animated-bg overflow-hidden">
+    <div className="flex h-screen stars-bg overflow-hidden relative">
+      <div className="stars-layer" />
+      <div className="stars-layer stars-layer-2" />
+      <div className="stars-layer stars-layer-3" />
       <Sidebar open={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
-      <div className="flex flex-1 flex-col overflow-hidden min-w-0">
+      <div className="flex flex-1 flex-col overflow-hidden min-w-0 relative z-10">
         <TopBar onMenuToggle={() => setSidebarOpen(!sidebarOpen)} />
         <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 scrollbar-thin">
           <Outlet />

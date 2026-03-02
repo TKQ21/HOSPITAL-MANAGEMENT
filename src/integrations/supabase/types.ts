@@ -62,6 +62,51 @@ export type Database = {
         }
         Relationships: []
       }
+      clinic_settings: {
+        Row: {
+          address: string
+          clinic_name: string
+          created_at: string
+          doctor_name: string
+          fees: string
+          follow_up_fees: string
+          id: string
+          phone: string
+          specialization: string
+          timings: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string
+          clinic_name?: string
+          created_at?: string
+          doctor_name?: string
+          fees?: string
+          follow_up_fees?: string
+          id?: string
+          phone?: string
+          specialization?: string
+          timings?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string
+          clinic_name?: string
+          created_at?: string
+          doctor_name?: string
+          fees?: string
+          follow_up_fees?: string
+          id?: string
+          phone?: string
+          specialization?: string
+          timings?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
