@@ -1,13 +1,18 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Activity, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { Activity, Eye, EyeOff, ArrowLeft, Sun, Moon } from "lucide-react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState("");
+  const [dark, setDark] = useState(true);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", dark);
+  }, [dark]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,11 +25,19 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen animated-bg flex items-center justify-center p-4">
-      <div className="w-full max-w-sm glass-panel rounded-2xl border neon-border-cyan neon-glow-cyan p-8 animate-slide-in">
-        <Link to="/" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors mb-6">
-          <ArrowLeft className="w-3 h-3" /> Back to AI Chat
-        </Link>
+    <div className="min-h-screen stars-bg flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="stars-layer" />
+      <div className="stars-layer stars-layer-2" />
+      <div className="stars-layer stars-layer-3" />
+      <div className="w-full max-w-sm glass-panel rounded-2xl border neon-border-cyan neon-glow-cyan p-8 animate-slide-in relative z-10">
+        <div className="flex items-center justify-between mb-6">
+          <Link to="/" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+            <ArrowLeft className="w-3 h-3" /> Back to AI Chat
+          </Link>
+          <button onClick={() => setDark(!dark)} className="p-2 rounded-lg hover:bg-secondary/50 transition-colors">
+            {dark ? <Sun className="w-4 h-4 neon-text-yellow" /> : <Moon className="w-4 h-4 text-muted-foreground" />}
+          </button>
+        </div>
 
         <div className="flex flex-col items-center mb-8">
           <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center neon-glow-cyan mb-4">
