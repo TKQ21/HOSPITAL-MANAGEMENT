@@ -9,6 +9,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import AuthPage from "@/pages/AuthPage";
 import PatientChatPage from "@/pages/PatientChatPage";
 import LoginPage from "@/pages/LoginPage";
+import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import DashboardPage from "@/pages/DashboardPage";
 import AppointmentsPage from "@/pages/AppointmentsPage";
 import PatientsPage from "@/pages/PatientsPage";
@@ -48,6 +49,9 @@ function AppRoutes() {
     <Routes>
       {/* If not logged in, show auth page */}
       <Route path="/" element={user ? <PatientChatPage /> : <AuthPage />} />
+      
+      {/* Reset password */}
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       
       {/* Doctor login & dashboard */}
       <Route path="/login" element={<LoginPage />} />
