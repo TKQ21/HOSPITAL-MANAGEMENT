@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -14,6 +14,12 @@ import DashboardPage from "@/pages/DashboardPage";
 import AppointmentsPage from "@/pages/AppointmentsPage";
 import PatientsPage from "@/pages/PatientsPage";
 import SettingsPage from "@/pages/SettingsPage";
+import DepartmentsPage from "@/pages/DepartmentsPage";
+import BedsPage from "@/pages/BedsPage";
+import DischargePage from "@/pages/DischargePage";
+import BillingPage from "@/pages/BillingPage";
+import AnalyticsPage from "@/pages/AnalyticsPage";
+import AuditLogPage from "@/pages/AuditLogPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,18 +53,19 @@ function AppRoutes() {
 
   return (
     <Routes>
-      {/* If not logged in, show auth page */}
       <Route path="/" element={user ? <PatientChatPage /> : <AuthPage />} />
-      
-      {/* Reset password */}
       <Route path="/reset-password" element={<ResetPasswordPage />} />
-      
-      {/* Doctor login & dashboard */}
       <Route path="/login" element={<LoginPage />} />
       <Route element={<DashboardLayout />}>
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/appointments" element={<AppointmentsPage />} />
         <Route path="/patients" element={<PatientsPage />} />
+        <Route path="/departments" element={<DepartmentsPage />} />
+        <Route path="/beds" element={<BedsPage />} />
+        <Route path="/discharge" element={<DischargePage />} />
+        <Route path="/billing" element={<BillingPage />} />
+        <Route path="/analytics" element={<AnalyticsPage />} />
+        <Route path="/audit-logs" element={<AuditLogPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<NotFound />} />
