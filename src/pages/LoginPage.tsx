@@ -2,8 +2,12 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Activity, Eye, EyeOff, ArrowLeft, Sun, Moon } from "lucide-react";
 
+const DEFAULT_EMAIL = "doctor@clinic.com";
+const DEFAULT_USERNAME = "doctor";
+const DEFAULT_PASSWORD = "admin123";
+
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState("");
@@ -16,11 +20,15 @@ export default function LoginPage() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (email === "doctor@clinic.com" && password === "admin123") {
+    const savedEmail = localStorage.getItem("doctor_email") || DEFAULT_EMAIL;
+    const savedUsername = localStorage.getItem("doctor_username") || DEFAULT_USERNAME;
+    const savedPassword = localStorage.getItem("doctor_password") || DEFAULT_PASSWORD;
+
+    if ((identifier === savedEmail || identifier === savedUsername) && password === savedPassword) {
       localStorage.setItem("clinic_auth", "true");
       navigate("/dashboard");
     } else {
-      setError("Invalid credentials");
+      setError("Invalid username/email or password");
     }
   };
 
@@ -49,12 +57,12 @@ export default function LoginPage() {
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">Email</label>
+            <label className="text-xs text-muted-foreground block mb-1">Username or Email</label>
             <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="doctor@clinic.com"
+              type="text"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              placeholder="Username or Email"
               className="w-full px-4 py-2.5 bg-secondary/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
@@ -85,7 +93,7 @@ export default function LoginPage() {
         </form>
 
         <p className="text-[10px] text-muted-foreground text-center mt-6">
-          Demo: doctor@clinic.com / admin123
+          Default: doctor@clinic.com / admin123
         </p>
       </div>
     </div>

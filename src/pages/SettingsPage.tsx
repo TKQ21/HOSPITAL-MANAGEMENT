@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
-import { Save, Building2, UserCog, Clock, DollarSign, Lock, Eye, EyeOff } from "lucide-react";
+import { Save, Building2, UserCog, Clock, DollarSign, Lock, Eye, EyeOff, User, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,15}$/;
+const DEFAULT_EMAIL = "doctor@clinic.com";
+const DEFAULT_USERNAME = "doctor";
+const DEFAULT_PASSWORD = "admin123";
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -18,36 +21,42 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Change password state
+  // Credential change state
+  const [loginUsername, setLoginUsername] = useState("");
+  const [loginEmail, setLoginEmail] = useState("");
   const [currentPw, setCurrentPw] = useState("");
   const [newPw, setNewPw] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
   const [showCurrentPw, setShowCurrentPw] = useState(false);
   const [showNewPw, setShowNewPw] = useState(false);
-  const [pwError, setPwError] = useState("");
-  const [pwSuccess, setPwSuccess] = useState(false);
-  const [changingPw, setChangingPw] = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
+  const [credError, setCredError] = useState("");
+  const [credSuccess, setCredSuccess] = useState(false);
 
   // Load settings from DB
   useEffect(() => {
     const loadSettings = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data } = await supabase
-        .from("clinic_settings")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (data) {
-        setClinicName(data.clinic_name);
-        setAddress(data.address);
-        setPhone(data.phone);
-        setDoctorName(data.doctor_name);
-        setSpecialization(data.specialization);
-        setFees(data.fees);
-        setFollowUpFees(data.follow_up_fees);
-        setTimings(data.timings);
+      if (user) {
+        const { data } = await supabase
+          .from("clinic_settings")
+          .select("*")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (data) {
+          setClinicName(data.clinic_name);
+          setAddress(data.address);
+          setPhone(data.phone);
+          setDoctorName(data.doctor_name);
+          setSpecialization(data.specialization);
+          setFees(data.fees);
+          setFollowUpFees(data.follow_up_fees);
+          setTimings(data.timings);
+        }
       }
+      // Load saved credentials
+      setLoginUsername(localStorage.getItem("doctor_username") || DEFAULT_USERNAME);
+      setLoginEmail(localStorage.getItem("doctor_email") || DEFAULT_EMAIL);
       setLoading(false);
     };
     loadSettings();
@@ -82,47 +91,53 @@ export default function SettingsPage() {
     }
   };
 
-  const handleChangePassword = async (e: React.FormEvent) => {
+  const handleUpdateCredentials = (e: React.FormEvent) => {
     e.preventDefault();
-    setPwError("");
-    setPwSuccess(false);
+    setCredError("");
+    setCredSuccess(false);
 
-    if (!PASSWORD_REGEX.test(newPw)) {
-      setPwError("Password must be 8-15 characters with at least 1 uppercase, 1 lowercase, 1 digit & 1 special character");
-      return;
-    }
-    if (newPw !== confirmPw) {
-      setPwError("New passwords do not match");
-      return;
-    }
+    const savedPassword = localStorage.getItem("doctor_password") || DEFAULT_PASSWORD;
 
-    setChangingPw(true);
-
-    // Verify current password by re-signing in
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user?.email) { setChangingPw(false); setPwError("User not found"); return; }
-
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: user.email,
-      password: currentPw,
-    });
-    if (signInError) {
-      setChangingPw(false);
-      setPwError("Current password is incorrect");
+    // Verify current password
+    if (currentPw !== savedPassword) {
+      setCredError("Current password is incorrect");
       return;
     }
 
-    const { error } = await supabase.auth.updateUser({ password: newPw });
-    setChangingPw(false);
-    if (error) {
-      setPwError(error.message);
-    } else {
-      setPwSuccess(true);
-      setCurrentPw("");
-      setNewPw("");
-      setConfirmPw("");
-      toast({ title: "Password Updated ✓", description: "Password successfully change ho gaya" });
+    // If new password provided, validate it
+    if (newPw) {
+      if (!PASSWORD_REGEX.test(newPw)) {
+        setCredError("Password must be 8-15 characters with at least 1 uppercase, 1 lowercase, 1 digit & 1 special character");
+        return;
+      }
+      if (newPw !== confirmPw) {
+        setCredError("New passwords do not match");
+        return;
+      }
     }
+
+    // Validate username & email
+    if (!loginUsername.trim()) {
+      setCredError("Username cannot be empty");
+      return;
+    }
+    if (!loginEmail.trim() || !loginEmail.includes("@")) {
+      setCredError("Please enter a valid email");
+      return;
+    }
+
+    // Save to localStorage
+    localStorage.setItem("doctor_username", loginUsername.trim());
+    localStorage.setItem("doctor_email", loginEmail.trim());
+    if (newPw) {
+      localStorage.setItem("doctor_password", newPw);
+    }
+
+    setCredSuccess(true);
+    setCurrentPw("");
+    setNewPw("");
+    setConfirmPw("");
+    toast({ title: "Credentials Updated ✓", description: "Login details successfully update ho gaye" });
   };
 
   const inputClass = "w-full px-4 py-2.5 bg-secondary/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50";
@@ -133,7 +148,7 @@ export default function SettingsPage() {
     <div className="space-y-6 animate-slide-in max-w-2xl">
       <div>
         <h1 className="font-display text-2xl font-bold neon-text-cyan tracking-wider">Settings</h1>
-        <p className="text-muted-foreground text-sm mt-1">Clinic configuration & account</p>
+        <p className="text-muted-foreground text-sm mt-1">Clinic configuration & account security</p>
       </div>
 
       {/* Clinic Info */}
@@ -201,45 +216,79 @@ export default function SettingsPage() {
         <span className="neon-text-cyan">{saving ? "Saving..." : "Save Settings"}</span>
       </button>
 
-      {/* Change Password */}
+      {/* Login Credentials & Change Password */}
       <div className="glass-panel rounded-xl p-5 border neon-border-yellow space-y-4">
         <div className="flex items-center gap-2 mb-2">
           <Lock className="w-5 h-5 neon-text-yellow" />
-          <h2 className="font-display text-sm font-semibold neon-text-yellow tracking-wider">CHANGE PASSWORD</h2>
+          <h2 className="font-display text-sm font-semibold neon-text-yellow tracking-wider">LOGIN CREDENTIALS</h2>
         </div>
-        <p className="text-[10px] text-muted-foreground">8-15 characters, 1 uppercase, 1 lowercase, 1 digit, 1 special character</p>
-        <form onSubmit={handleChangePassword} className="space-y-3">
+        <p className="text-[10px] text-muted-foreground">Change your username, email & password. Password: 8-15 chars, 1 uppercase, 1 lowercase, 1 digit, 1 special character.</p>
+
+        <form onSubmit={handleUpdateCredentials} className="space-y-3">
+          {/* Username */}
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">Current Password</label>
+            <label className="text-xs text-muted-foreground block mb-1 flex items-center gap-1">
+              <User className="w-3 h-3" /> Login Username
+            </label>
+            <input value={loginUsername} onChange={(e) => setLoginUsername(e.target.value)} className={inputClass} placeholder="Username" />
+          </div>
+
+          {/* Email */}
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1 flex items-center gap-1">
+              <Mail className="w-3 h-3" /> Login Email
+            </label>
+            <input type="email" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} className={inputClass} placeholder="Email" />
+          </div>
+
+          <div className="border-t border-border/50 pt-3 mt-3">
+            <p className="text-xs text-muted-foreground mb-2">Enter current password to save changes. New password is optional.</p>
+          </div>
+
+          {/* Current Password (required) */}
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">Current Password *</label>
             <div className="relative">
-              <input type={showCurrentPw ? "text" : "password"} value={currentPw} onChange={(e) => setCurrentPw(e.target.value)} required className={inputClass + " pr-10"} />
+              <input type={showCurrentPw ? "text" : "password"} value={currentPw} onChange={(e) => setCurrentPw(e.target.value)} required className={inputClass + " pr-10"} placeholder="Enter current password" />
               <button type="button" onClick={() => setShowCurrentPw(!showCurrentPw)} className="absolute right-3 top-1/2 -translate-y-1/2">
                 {showCurrentPw ? <EyeOff className="w-4 h-4 text-muted-foreground" /> : <Eye className="w-4 h-4 text-muted-foreground" />}
               </button>
             </div>
           </div>
+
+          {/* New Password (optional) */}
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">New Password</label>
+            <label className="text-xs text-muted-foreground block mb-1">New Password (optional)</label>
             <div className="relative">
-              <input type={showNewPw ? "text" : "password"} value={newPw} onChange={(e) => setNewPw(e.target.value)} required className={inputClass + " pr-10"} />
+              <input type={showNewPw ? "text" : "password"} value={newPw} onChange={(e) => setNewPw(e.target.value)} className={inputClass + " pr-10"} placeholder="Leave blank to keep current" />
               <button type="button" onClick={() => setShowNewPw(!showNewPw)} className="absolute right-3 top-1/2 -translate-y-1/2">
                 {showNewPw ? <EyeOff className="w-4 h-4 text-muted-foreground" /> : <Eye className="w-4 h-4 text-muted-foreground" />}
               </button>
             </div>
           </div>
-          <div>
-            <label className="text-xs text-muted-foreground block mb-1">Confirm New Password</label>
-            <input type="password" value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} required className={inputClass} />
-          </div>
-          {pwError && <p className="text-xs neon-text-pink">{pwError}</p>}
-          {pwSuccess && <p className="text-xs neon-text-green">Password updated successfully ✓</p>}
+
+          {/* Confirm New Password */}
+          {newPw && (
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">Confirm New Password</label>
+              <div className="relative">
+                <input type={showConfirmPw ? "text" : "password"} value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} required className={inputClass + " pr-10"} placeholder="Confirm new password" />
+                <button type="button" onClick={() => setShowConfirmPw(!showConfirmPw)} className="absolute right-3 top-1/2 -translate-y-1/2">
+                  {showConfirmPw ? <EyeOff className="w-4 h-4 text-muted-foreground" /> : <Eye className="w-4 h-4 text-muted-foreground" />}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {credError && <p className="text-xs neon-text-pink">{credError}</p>}
+          {credSuccess && <p className="text-xs neon-text-green">Credentials updated successfully ✓</p>}
+
           <button
             type="submit"
-            disabled={changingPw}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-primary/20 border neon-border-yellow neon-glow-yellow hover:bg-primary/30 transition-all font-medium text-sm disabled:opacity-50"
+            className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-primary/20 border neon-border-yellow neon-glow-yellow hover:bg-primary/30 transition-all font-medium text-sm"
           >
             <Lock className="w-4 h-4 neon-text-yellow" />
-            <span className="neon-text-yellow">{changingPw ? "Updating..." : "Update Password"}</span>
+            <span className="neon-text-yellow">Update Credentials</span>
           </button>
         </form>
       </div>
