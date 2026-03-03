@@ -62,6 +62,125 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: string | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          user_email: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: string | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          user_email?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: string | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          user_email?: string | null
+        }
+        Relationships: []
+      }
+      beds: {
+        Row: {
+          admitted_at: string | null
+          bed_number: string
+          created_at: string
+          department_id: string | null
+          id: string
+          patient_name: string | null
+          patient_phone: string | null
+          status: string
+          updated_at: string
+          ward_type: string
+        }
+        Insert: {
+          admitted_at?: string | null
+          bed_number: string
+          created_at?: string
+          department_id?: string | null
+          id?: string
+          patient_name?: string | null
+          patient_phone?: string | null
+          status?: string
+          updated_at?: string
+          ward_type?: string
+        }
+        Update: {
+          admitted_at?: string | null
+          bed_number?: string
+          created_at?: string
+          department_id?: string | null
+          id?: string
+          patient_name?: string | null
+          patient_phone?: string | null
+          status?: string
+          updated_at?: string
+          ward_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "beds_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing: {
+        Row: {
+          created_at: string
+          id: string
+          items: Json
+          notes: string | null
+          paid_amount: number
+          patient_name: string
+          patient_phone: string
+          payment_method: string | null
+          payment_status: string
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          items?: Json
+          notes?: string | null
+          paid_amount?: number
+          patient_name: string
+          patient_phone: string
+          payment_method?: string | null
+          payment_status?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          items?: Json
+          notes?: string | null
+          paid_amount?: number
+          patient_name?: string
+          patient_phone?: string
+          payment_method?: string | null
+          payment_status?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       clinic_settings: {
         Row: {
           address: string
@@ -104,6 +223,93 @@ export type Database = {
           timings?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      departments: {
+        Row: {
+          created_at: string
+          description: string | null
+          head_doctor: string | null
+          id: string
+          name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          head_doctor?: string | null
+          id?: string
+          name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          head_doctor?: string | null
+          id?: string
+          name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      discharge_summaries: {
+        Row: {
+          admission_date: string
+          clinical_notes: string | null
+          created_at: string
+          created_by: string | null
+          department: string | null
+          diagnosis: string
+          discharge_date: string
+          doctor_name: string
+          follow_up_instructions: string | null
+          id: string
+          medications: string | null
+          patient_name: string
+          patient_phone: string
+          status: string
+          treatment: string | null
+          updated_at: string
+        }
+        Insert: {
+          admission_date: string
+          clinical_notes?: string | null
+          created_at?: string
+          created_by?: string | null
+          department?: string | null
+          diagnosis: string
+          discharge_date: string
+          doctor_name: string
+          follow_up_instructions?: string | null
+          id?: string
+          medications?: string | null
+          patient_name: string
+          patient_phone: string
+          status?: string
+          treatment?: string | null
+          updated_at?: string
+        }
+        Update: {
+          admission_date?: string
+          clinical_notes?: string | null
+          created_at?: string
+          created_by?: string | null
+          department?: string | null
+          diagnosis?: string
+          discharge_date?: string
+          doctor_name?: string
+          follow_up_instructions?: string | null
+          id?: string
+          medications?: string | null
+          patient_name?: string
+          patient_phone?: string
+          status?: string
+          treatment?: string | null
+          updated_at?: string
         }
         Relationships: []
       }

@@ -1,17 +1,19 @@
 import { Link, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard,
-  Calendar,
-  Users,
-  Settings,
-  ChevronLeft,
-  Activity,
+  LayoutDashboard, Calendar, Users, Settings, ChevronLeft, Activity,
+  Building, BedDouble, FileText, DollarSign, BarChart3, Shield,
 } from "lucide-react";
 
 const navItems = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard", color: "neon-text-cyan" },
   { to: "/appointments", icon: Calendar, label: "Appointments", color: "neon-text-pink" },
   { to: "/patients", icon: Users, label: "Patients", color: "neon-text-yellow" },
+  { to: "/departments", icon: Building, label: "Departments", color: "neon-text-green" },
+  { to: "/beds", icon: BedDouble, label: "Beds", color: "neon-text-cyan" },
+  { to: "/discharge", icon: FileText, label: "Discharge", color: "neon-text-green" },
+  { to: "/billing", icon: DollarSign, label: "Billing", color: "neon-text-pink" },
+  { to: "/analytics", icon: BarChart3, label: "Analytics", color: "neon-text-yellow" },
+  { to: "/audit-logs", icon: Shield, label: "Audit Logs", color: "neon-text-cyan" },
   { to: "/settings", icon: Settings, label: "Settings", color: "neon-text-cyan" },
 ];
 
@@ -45,7 +47,7 @@ export function Sidebar({ open, onToggle }: SidebarProps) {
           )}
         </div>
 
-        <nav className="flex-1 p-3 space-y-1">
+        <nav className="flex-1 p-3 space-y-1 overflow-y-auto scrollbar-thin">
           {navItems.map(item => {
             const isActive = location.pathname === item.to;
             return (
