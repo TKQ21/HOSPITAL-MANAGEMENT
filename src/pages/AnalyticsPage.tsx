@@ -40,7 +40,6 @@ export default function AnalyticsPage() {
   const noShowCount = appointments.filter(a => a.status === "cancelled").length;
   const noShowRate = totalAppts > 0 ? Math.round((noShowCount / totalAppts) * 100) : 0;
 
-  // Hourly distribution for today
   const hourlyData: Record<string, number> = {};
   todayAppts.forEach(a => {
     const hour = a.appointment_time?.split(":")[0] || "00";
@@ -48,7 +47,6 @@ export default function AnalyticsPage() {
   });
   const peakHour = Object.entries(hourlyData).sort((a, b) => b[1] - a[1])[0];
 
-  // Department-wise appointments
   const deptLoad: Record<string, number> = {};
   appointments.forEach(a => {
     const dept = a.reason || "General";
@@ -57,9 +55,9 @@ export default function AnalyticsPage() {
 
   const stats = [
     { label: "Today's Appointments", value: todayAppts.length, icon: Calendar, color: "neon-text-cyan", border: "neon-border-cyan" },
-    { label: "Active Patients", value: patients.length, icon: Users, color: "neon-text-green", border: "neon-border-green" },
-    { label: "Bed Occupancy", value: `${bedOccupancy}%`, icon: BedDouble, color: "neon-text-yellow", border: "neon-border-yellow" },
-    { label: "Total Revenue", value: `₹${totalRevenue.toLocaleString()}`, icon: DollarSign, color: "neon-text-pink", border: "neon-border-pink" },
+    { label: "Active Patients", value: patients.length, icon: Users, color: "neon-text-purple", border: "neon-border-purple" },
+    { label: "Bed Occupancy", value: `${bedOccupancy}%`, icon: BedDouble, color: "neon-text-orange", border: "neon-border-orange" },
+    { label: "Total Revenue", value: `₹${totalRevenue.toLocaleString()}`, icon: DollarSign, color: "neon-text-red", border: "neon-border-red" },
     { label: "Completion Rate", value: `${completionRate}%`, icon: TrendingUp, color: "neon-text-green", border: "neon-border-green" },
     { label: "No-Show Rate", value: `${noShowRate}%`, icon: BarChart3, color: "neon-text-pink", border: "neon-border-pink" },
   ];
@@ -71,7 +69,6 @@ export default function AnalyticsPage() {
         <p className="text-muted-foreground text-xs mt-1">Real-time hospital metrics from database</p>
       </div>
 
-      {/* KPI Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
         {stats.map(stat => (
           <div key={stat.label} className={`glass-panel rounded-xl p-3 sm:p-4 border ${stat.border}`}>
@@ -82,15 +79,14 @@ export default function AnalyticsPage() {
         ))}
       </div>
 
-      {/* Peak Hour & Predictions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="glass-panel rounded-xl p-4 border neon-border-cyan">
-          <h2 className="font-display text-sm font-semibold neon-text-cyan mb-3">OPD PEAK ANALYSIS (Today)</h2>
+        <div className="glass-panel rounded-xl p-4 border neon-border-darkblue">
+          <h2 className="font-display text-sm font-semibold neon-text-darkblue mb-3">OPD PEAK ANALYSIS (Today)</h2>
           {todayAppts.length === 0 ? (
             <p className="text-xs text-muted-foreground">No appointments today — add appointments to see analysis</p>
           ) : (
             <div className="space-y-2">
-              <p className="text-xs">Peak Hour: <span className="neon-text-yellow font-bold">{peakHour ? `${peakHour[0]}:00 (${peakHour[1]} appts)` : "N/A"}</span></p>
+              <p className="text-xs">Peak Hour: <span className="neon-text-orange font-bold">{peakHour ? `${peakHour[0]}:00 (${peakHour[1]} appts)` : "N/A"}</span></p>
               <p className="text-xs">Total Today: <span className="neon-text-green font-bold">{todayAppts.length}</span></p>
               <div className="space-y-1 mt-3">
                 <p className="text-[10px] text-muted-foreground">Hourly Distribution:</p>
@@ -108,8 +104,8 @@ export default function AnalyticsPage() {
           )}
         </div>
 
-        <div className="glass-panel rounded-xl p-4 border neon-border-green">
-          <h2 className="font-display text-sm font-semibold neon-text-green mb-3">DEPARTMENT LOAD</h2>
+        <div className="glass-panel rounded-xl p-4 border neon-border-purple">
+          <h2 className="font-display text-sm font-semibold neon-text-purple mb-3">DEPARTMENT LOAD</h2>
           {Object.keys(deptLoad).length === 0 ? (
             <p className="text-xs text-muted-foreground">No data yet — add appointments to see department analysis</p>
           ) : (
@@ -117,7 +113,7 @@ export default function AnalyticsPage() {
               {Object.entries(deptLoad).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([dept, count]) => (
                 <div key={dept} className="flex items-center justify-between text-xs">
                   <span className="truncate flex-1">{dept}</span>
-                  <span className="neon-text-green font-bold ml-2">{count}</span>
+                  <span className="neon-text-purple font-bold ml-2">{count}</span>
                 </div>
               ))}
             </div>
@@ -125,32 +121,31 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Revenue & Beds */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="glass-panel rounded-xl p-4 border neon-border-pink">
-          <h2 className="font-display text-sm font-semibold neon-text-pink mb-3">REVENUE BREAKDOWN</h2>
+        <div className="glass-panel rounded-xl p-4 border neon-border-red">
+          <h2 className="font-display text-sm font-semibold neon-text-red mb-3">REVENUE BREAKDOWN</h2>
           {bills.length === 0 ? (
             <p className="text-xs text-muted-foreground">No billing data — create bills to see revenue analysis</p>
           ) : (
             <div className="space-y-2">
               <p className="text-xs">Collected: <span className="neon-text-green font-bold">₹{totalRevenue.toLocaleString()}</span></p>
-              <p className="text-xs">Pending: <span className="neon-text-yellow font-bold">₹{pendingRevenue.toLocaleString()}</span></p>
+              <p className="text-xs">Pending: <span className="neon-text-orange font-bold">₹{pendingRevenue.toLocaleString()}</span></p>
               <p className="text-xs">Total Bills: <span className="neon-text-cyan font-bold">{bills.length}</span></p>
             </div>
           )}
         </div>
 
-        <div className="glass-panel rounded-xl p-4 border neon-border-yellow">
-          <h2 className="font-display text-sm font-semibold neon-text-yellow mb-3">BED STATUS</h2>
+        <div className="glass-panel rounded-xl p-4 border neon-border-orange">
+          <h2 className="font-display text-sm font-semibold neon-text-orange mb-3">BED STATUS</h2>
           {beds.length === 0 ? (
             <p className="text-xs text-muted-foreground">No beds configured — add beds to see occupancy</p>
           ) : (
             <div className="space-y-2">
               <p className="text-xs">Total: <span className="font-bold">{totalBeds}</span></p>
-              <p className="text-xs">Occupied: <span className="neon-text-yellow font-bold">{occupiedBeds}</span></p>
+              <p className="text-xs">Occupied: <span className="neon-text-orange font-bold">{occupiedBeds}</span></p>
               <p className="text-xs">Available: <span className="neon-text-green font-bold">{totalBeds - occupiedBeds}</span></p>
               <div className="h-3 bg-secondary/50 rounded-full overflow-hidden mt-2">
-                <div className={`h-full rounded-full ${bedOccupancy >= 85 ? "bg-red-500" : "bg-green-500"}`} style={{ width: `${bedOccupancy}%` }} />
+                <div className={`h-full rounded-full ${bedOccupancy >= 85 ? "bg-[hsl(var(--neon-red))]" : "bg-[hsl(var(--neon-green))]"}`} style={{ width: `${bedOccupancy}%` }} />
               </div>
               <p className="text-[10px] text-muted-foreground">{bedOccupancy}% occupancy</p>
             </div>

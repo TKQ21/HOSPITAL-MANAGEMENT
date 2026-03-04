@@ -3,13 +3,8 @@ import { Shield, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface AuditLog {
-  id: string;
-  user_email: string | null;
-  action: string;
-  entity_type: string;
-  entity_id: string | null;
-  details: string | null;
-  created_at: string;
+  id: string; user_email: string | null; action: string; entity_type: string;
+  entity_id: string | null; details: string | null; created_at: string;
 }
 
 export default function AuditLogPage() {
@@ -18,25 +13,20 @@ export default function AuditLogPage() {
   const [filterEntity, setFilterEntity] = useState("all");
 
   useEffect(() => {
-    const load = async () => {
-      const { data } = await supabase.from("audit_logs").select("*").order("created_at", { ascending: false }).limit(500);
-      if (data) setLogs(data as AuditLog[]);
-    };
+    const load = async () => { const { data } = await supabase.from("audit_logs").select("*").order("created_at", { ascending: false }).limit(500); if (data) setLogs(data as AuditLog[]); };
     load();
   }, []);
 
   const entityTypes = [...new Set(logs.map(l => l.entity_type))];
-
   const filtered = logs.filter(l => {
-    const matchSearch = l.action.toLowerCase().includes(search.toLowerCase()) ||
-      (l.user_email || "").toLowerCase().includes(search.toLowerCase()) ||
-      (l.details || "").toLowerCase().includes(search.toLowerCase());
+    const matchSearch = l.action.toLowerCase().includes(search.toLowerCase()) || (l.user_email || "").toLowerCase().includes(search.toLowerCase()) || (l.details || "").toLowerCase().includes(search.toLowerCase());
     const matchEntity = filterEntity === "all" || l.entity_type === filterEntity;
     return matchSearch && matchEntity;
   });
 
   const inputClass = "w-full px-4 py-2.5 bg-secondary/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50";
-  const actionColors: Record<string, string> = { create: "neon-text-green", update: "neon-text-yellow", delete: "neon-text-pink", view: "neon-text-cyan" };
+  const actionColors: Record<string, string> = { create: "neon-text-green", update: "neon-text-orange", delete: "neon-text-red", view: "neon-text-cyan" };
+  const borderColors = ["neon-border-purple", "neon-border-orange", "neon-border-darkblue", "neon-border-red", "neon-border-pink", "neon-border-brown"];
 
   return (
     <div className="space-y-4 animate-slide-in">
@@ -60,8 +50,8 @@ export default function AuditLogPage() {
         <p className="text-sm text-muted-foreground text-center py-8">{search ? "No logs match" : "No audit logs recorded yet"}</p>
       ) : (
         <div className="space-y-2">
-          {filtered.map(l => (
-            <div key={l.id} className="glass-panel rounded-lg p-3 border border-border/50 flex items-start gap-3">
+          {filtered.map((l, idx) => (
+            <div key={l.id} className={`glass-panel rounded-lg p-3 border ${borderColors[idx % borderColors.length]} flex items-start gap-3`}>
               <Shield className="w-4 h-4 neon-text-cyan mt-0.5 shrink-0" />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
