@@ -63,6 +63,9 @@ export default function DepartmentsPage() {
 
   const inputClass = "w-full px-4 py-2.5 bg-secondary/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50";
 
+  const cardColors = ["neon-border-purple", "neon-border-orange", "neon-border-darkblue", "neon-border-red", "neon-border-pink", "neon-border-green"];
+  const iconColors = ["neon-text-purple", "neon-text-orange", "neon-text-darkblue", "neon-text-red", "neon-text-pink", "neon-text-green"];
+
   return (
     <div className="space-y-4 animate-slide-in">
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -105,14 +108,14 @@ export default function DepartmentsPage() {
         </p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {filtered.map(d => (
-            <div key={d.id} className="glass-panel rounded-xl p-4 border neon-border-cyan space-y-2">
+          {filtered.map((d, idx) => (
+            <div key={d.id} className={`glass-panel rounded-xl p-4 border ${cardColors[idx % cardColors.length]} space-y-2`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Building className="w-4 h-4 neon-text-cyan" />
+                  <Building className={`w-4 h-4 ${iconColors[idx % iconColors.length]}`} />
                   <h3 className="font-display text-sm font-bold">{d.name}</h3>
                 </div>
-                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${d.status === "active" ? "bg-green-500/20 neon-text-green" : "bg-red-500/20 neon-text-pink"}`}>
+                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${d.status === "active" ? "bg-[hsl(var(--neon-green)/.15)] neon-text-green" : "bg-[hsl(var(--neon-red)/.15)] neon-text-red"}`}>
                   {d.status}
                 </span>
               </div>

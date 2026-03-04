@@ -47,10 +47,10 @@ export default function DashboardPage() {
   const stats = [
     { label: "Today's Appointments", value: String(todayAppts.length), icon: Calendar, text: "neon-text-cyan", border: "neon-border-cyan", glow: "neon-glow-cyan" },
     { label: "Total Patients", value: String(patients.length), icon: Users, text: "neon-text-green", border: "neon-border-green", glow: "neon-glow-green" },
-    { label: "Pending Requests", value: String(pending.length), icon: Clock, text: "neon-text-yellow", border: "neon-border-yellow", glow: "neon-glow-yellow" },
-    { label: "Visited", value: String(visited.length), icon: CheckCircle, text: "neon-text-pink", border: "neon-border-pink", glow: "neon-glow-pink" },
-    { label: "Bed Occupancy", value: `${bedOccupancy}%`, icon: BedDouble, text: "neon-text-cyan", border: "neon-border-cyan", glow: "" },
-    { label: "Revenue (Paid)", value: `₹${todayRevenue.toLocaleString()}`, icon: DollarSign, text: "neon-text-green", border: "neon-border-green", glow: "" },
+    { label: "Pending Requests", value: String(pending.length), icon: Clock, text: "neon-text-orange", border: "neon-border-orange", glow: "neon-glow-orange" },
+    { label: "Visited", value: String(visited.length), icon: CheckCircle, text: "neon-text-purple", border: "neon-border-purple", glow: "neon-glow-purple" },
+    { label: "Bed Occupancy", value: `${bedOccupancy}%`, icon: BedDouble, text: "neon-text-darkblue", border: "neon-border-darkblue", glow: "neon-glow-darkblue" },
+    { label: "Revenue (Paid)", value: `₹${todayRevenue.toLocaleString()}`, icon: DollarSign, text: "neon-text-red", border: "neon-border-red", glow: "neon-glow-red" },
   ];
 
   const statusColors: Record<string, string> = {
@@ -79,11 +79,11 @@ export default function DashboardPage() {
 
       {/* ICU Alert */}
       {icuBeds.length > 0 && icuPercent >= 85 && (
-        <div className="glass-panel rounded-xl p-4 border neon-border-pink neon-glow-pink">
+        <div className="glass-panel rounded-xl p-4 border neon-border-red neon-glow-red">
           <div className="flex items-center gap-3">
-            <AlertTriangle className="w-5 h-5 neon-text-pink animate-pulse" />
+            <AlertTriangle className="w-5 h-5 neon-text-red animate-pulse" />
             <div>
-              <p className="text-sm font-semibold neon-text-pink">ICU at {icuPercent}% capacity</p>
+              <p className="text-sm font-semibold neon-text-red">ICU at {icuPercent}% capacity</p>
               <p className="text-xs text-muted-foreground">{icuBeds.length - icuOccupied} ICU beds remaining</p>
             </div>
           </div>
@@ -91,9 +91,9 @@ export default function DashboardPage() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 glass-panel rounded-xl p-4 sm:p-5 border neon-border-cyan">
+        <div className="lg:col-span-2 glass-panel rounded-xl p-4 sm:p-5 border neon-border-purple">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display text-xs sm:text-sm font-semibold neon-text-cyan tracking-wider">RECENT APPOINTMENTS</h2>
+            <h2 className="font-display text-xs sm:text-sm font-semibold neon-text-purple tracking-wider">RECENT APPOINTMENTS</h2>
             <Link to="/appointments" className="text-[10px] text-muted-foreground hover:text-foreground transition-colors">View All →</Link>
           </div>
           {appointments.length === 0 ? (
@@ -101,7 +101,7 @@ export default function DashboardPage() {
           ) : (
             <div className="space-y-2 sm:space-y-3">
               {appointments.slice(0, 5).map((appt: any) => (
-                <div key={appt.id} className="flex items-center justify-between p-2.5 sm:p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors">
+                <div key={appt.id} className="flex items-center justify-between p-2.5 sm:p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors border border-border/30">
                   <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                     <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                       <span className="text-xs font-bold neon-text-cyan">{appt.patient_name?.charAt(0)}</span>
@@ -121,11 +121,11 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <div className="glass-panel rounded-xl p-4 sm:p-5 border neon-border-pink">
-          <h2 className="font-display text-xs sm:text-sm font-semibold neon-text-pink tracking-wider mb-4">ALERTS</h2>
+        <div className="glass-panel rounded-xl p-4 sm:p-5 border neon-border-orange">
+          <h2 className="font-display text-xs sm:text-sm font-semibold neon-text-orange tracking-wider mb-4">ALERTS</h2>
           <div className="space-y-3">
             {pending.length > 0 && (
-              <Link to="/appointments" className="flex items-start gap-3 p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors">
+              <Link to="/appointments" className="flex items-start gap-3 p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors border border-border/30">
                 <AlertTriangle className="w-4 h-4 neon-text-yellow mt-0.5 shrink-0" />
                 <div>
                   <p className="text-xs font-medium">{pending.length} pending appointment{pending.length > 1 ? "s" : ""}</p>
@@ -134,8 +134,8 @@ export default function DashboardPage() {
               </Link>
             )}
             {beds.length > 0 && (
-              <Link to="/beds" className="flex items-start gap-3 p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors">
-                <BedDouble className="w-4 h-4 neon-text-cyan mt-0.5 shrink-0" />
+              <Link to="/beds" className="flex items-start gap-3 p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors border border-border/30">
+                <BedDouble className="w-4 h-4 neon-text-darkblue mt-0.5 shrink-0" />
                 <div>
                   <p className="text-xs font-medium">{occupiedBeds}/{totalBeds} beds occupied</p>
                   <p className="text-[10px] text-muted-foreground mt-1">{bedOccupancy}% occupancy</p>
@@ -143,7 +143,7 @@ export default function DashboardPage() {
               </Link>
             )}
             {appointments.length === 0 && beds.length === 0 && (
-              <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/30">
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/30 border border-border/30">
                 <BarChart3 className="w-4 h-4 neon-text-green mt-0.5 shrink-0" />
                 <div>
                   <p className="text-xs font-medium">System ready</p>
