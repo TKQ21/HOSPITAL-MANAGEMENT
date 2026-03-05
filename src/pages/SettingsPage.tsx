@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Save, Building2, UserCog, Clock, DollarSign, Lock, Eye, EyeOff, User, Mail, Shield, FileText, Users } from "lucide-react";
+import { Save, Building2, UserCog, Clock, DollarSign, Lock, Eye, EyeOff, User, Mail, Shield, FileText, Users, Globe } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -43,6 +43,17 @@ export default function SettingsPage() {
   const [emergencyProtocol, setEmergencyProtocol] = useState("");
   const [patientRights, setPatientRights] = useState("");
   const [staffRules, setStaffRules] = useState("");
+
+  // Data Privacy & Compliance
+  const [complianceCountry, setComplianceCountry] = useState("");
+  const [dataRetentionPolicy, setDataRetentionPolicy] = useState("");
+  const [consentPolicy, setConsentPolicy] = useState("");
+  const [dataAccessPolicy, setDataAccessPolicy] = useState("");
+  const [dataDeletionPolicy, setDataDeletionPolicy] = useState("");
+  const [phiEncryptionPolicy, setPhiEncryptionPolicy] = useState("");
+  const [crossBorderPolicy, setCrossBorderPolicy] = useState("");
+  const [complianceFramework, setComplianceFramework] = useState("");
+  const [dataBreachProtocol, setDataBreachProtocol] = useState("");
 
   // User Management
   const [users, setUsers] = useState<{ name: string; email: string; role: string; department: string; status: string }[]>([]);
@@ -93,6 +104,16 @@ export default function SettingsPage() {
       setPatientRights(localStorage.getItem("policy_patient_rights") || "");
       setStaffRules(localStorage.getItem("policy_staff_rules") || "");
 
+      setComplianceCountry(localStorage.getItem("compliance_country") || "");
+      setDataRetentionPolicy(localStorage.getItem("compliance_data_retention") || "");
+      setConsentPolicy(localStorage.getItem("compliance_consent") || "");
+      setDataAccessPolicy(localStorage.getItem("compliance_data_access") || "");
+      setDataDeletionPolicy(localStorage.getItem("compliance_data_deletion") || "");
+      setPhiEncryptionPolicy(localStorage.getItem("compliance_phi_encryption") || "");
+      setCrossBorderPolicy(localStorage.getItem("compliance_cross_border") || "");
+      setComplianceFramework(localStorage.getItem("compliance_framework") || "");
+      setDataBreachProtocol(localStorage.getItem("compliance_data_breach") || "");
+
       const savedUsers = localStorage.getItem("hospital_users");
       if (savedUsers) setUsers(JSON.parse(savedUsers));
 
@@ -128,6 +149,19 @@ export default function SettingsPage() {
     localStorage.setItem("policy_emergency", emergencyProtocol); localStorage.setItem("policy_patient_rights", patientRights);
     localStorage.setItem("policy_staff_rules", staffRules);
     toast({ title: "Saved ✓", description: "Policies & rules saved" });
+  };
+
+  const handleSaveCompliance = () => {
+    localStorage.setItem("compliance_country", complianceCountry);
+    localStorage.setItem("compliance_data_retention", dataRetentionPolicy);
+    localStorage.setItem("compliance_consent", consentPolicy);
+    localStorage.setItem("compliance_data_access", dataAccessPolicy);
+    localStorage.setItem("compliance_data_deletion", dataDeletionPolicy);
+    localStorage.setItem("compliance_phi_encryption", phiEncryptionPolicy);
+    localStorage.setItem("compliance_cross_border", crossBorderPolicy);
+    localStorage.setItem("compliance_framework", complianceFramework);
+    localStorage.setItem("compliance_data_breach", dataBreachProtocol);
+    toast({ title: "Saved ✓", description: "Data privacy & compliance settings saved" });
   };
 
   const handleAddUser = () => {
@@ -168,6 +202,7 @@ export default function SettingsPage() {
     { id: "hospital", label: "Hospital Profile", icon: Building2, color: "neon-text-purple", border: "neon-border-purple" },
     { id: "policies", label: "Policies & Rules", icon: FileText, color: "neon-text-orange", border: "neon-border-orange" },
     { id: "users", label: "User Management", icon: Users, color: "neon-text-darkblue", border: "neon-border-darkblue" },
+    { id: "compliance", label: "Data Privacy", icon: Globe, color: "neon-text-brown", border: "neon-border-brown" },
     { id: "security", label: "Security", icon: Shield, color: "neon-text-red", border: "neon-border-red" },
     { id: "credentials", label: "Login Credentials", icon: Lock, color: "neon-text-yellow", border: "neon-border-yellow" },
   ];
@@ -315,6 +350,37 @@ export default function SettingsPage() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* DATA PRIVACY & COMPLIANCE */}
+      {activeTab === "compliance" && (
+        <div className="space-y-4 max-w-2xl">
+          <div className="glass-panel rounded-xl p-5 border neon-border-brown space-y-4">
+            <div className="flex items-center gap-2 mb-2"><Globe className="w-5 h-5 neon-text-brown" /><h2 className="font-display text-sm font-semibold neon-text-brown tracking-wider">DATA PRIVACY & COMPLIANCE</h2></div>
+            <p className="text-[10px] text-muted-foreground">Configure country-specific patient data privacy regulations. Each hospital can define policies based on their country's healthcare data laws (HIPAA, GDPR, Ayushman Bharat, PDPA, etc.)</p>
+            
+            <div><label className="text-xs text-muted-foreground block mb-1">Country / Region</label>
+              <input value={complianceCountry} onChange={e => setComplianceCountry(e.target.value)} placeholder="e.g. India, USA, UK, UAE, Singapore..." className={inputClass} /></div>
+            
+            <div><label className="text-xs text-muted-foreground block mb-1">Compliance Framework</label>
+              <textarea value={complianceFramework} onChange={e => setComplianceFramework(e.target.value)} placeholder="e.g. Ayushman Bharat Digital Mission (India), HIPAA (USA), GDPR (EU), PDPA (Singapore)... List all applicable frameworks." className={inputClass} rows={3} /></div>
+            
+            {[
+              { label: "Patient Consent Policy", value: consentPolicy, set: setConsentPolicy, placeholder: "e.g. Explicit written/digital consent required before collecting patient data. Consent form must include purpose, data usage, and storage duration..." },
+              { label: "Data Retention & Archival Policy", value: dataRetentionPolicy, set: setDataRetentionPolicy, placeholder: "e.g. Patient records retained for 10 years post last visit. Archived records moved to cold storage after 5 years..." },
+              { label: "Data Access Policy (Right to Access)", value: dataAccessPolicy, set: setDataAccessPolicy, placeholder: "e.g. Patients can request their complete medical records within 30 days. Access request form available at reception..." },
+              { label: "Data Deletion Policy (Right to Delete)", value: dataDeletionPolicy, set: setDataDeletionPolicy, placeholder: "e.g. Patients can request deletion of non-essential data. Legal retention requirements must be met before deletion..." },
+              { label: "PHI Encryption Standards", value: phiEncryptionPolicy, set: setPhiEncryptionPolicy, placeholder: "e.g. AES-256 encryption at rest, TLS 1.3 in transit. All PHI stored in encrypted database. Backup encryption mandatory..." },
+              { label: "Cross-Border Data Transfer Policy", value: crossBorderPolicy, set: setCrossBorderPolicy, placeholder: "e.g. Patient data must remain within country borders. No cross-border transfer without explicit consent and legal approval..." },
+              { label: "Data Breach Response Protocol", value: dataBreachProtocol, set: setDataBreachProtocol, placeholder: "e.g. Notify affected patients within 72 hours. Report to regulatory authority. Incident response team activated immediately..." },
+            ].map(f => (
+              <div key={f.label}><label className="text-xs text-muted-foreground block mb-1">{f.label}</label><textarea value={f.value} onChange={e => f.set(e.target.value)} placeholder={f.placeholder} className={inputClass} rows={4} /></div>
+            ))}
+          </div>
+          <button onClick={handleSaveCompliance} className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-primary/20 border neon-border-brown neon-glow-brown hover:bg-primary/30 transition-all font-medium text-sm">
+            <Save className="w-4 h-4 neon-text-brown" /><span className="neon-text-brown">Save Compliance Settings</span>
+          </button>
         </div>
       )}
 
