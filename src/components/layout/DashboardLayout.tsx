@@ -25,6 +25,11 @@ export default function DashboardLayout() {
         <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 scrollbar-thin">
           <Outlet />
         </main>
+        <footer className="h-10 flex items-center justify-center gap-2 border-t border-border/30 text-[10px] text-muted-foreground/60 font-display tracking-wider z-10 shrink-0">
+          <span>© 2026 Mohd Kaif</span>
+          <span className="neon-text-cyan">•</span>
+          <span>Built with AI assistance</span>
+        </footer>
       </div>
     </div>
   );
