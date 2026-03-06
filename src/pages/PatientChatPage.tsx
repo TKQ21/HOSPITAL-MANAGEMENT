@@ -56,6 +56,9 @@ export default function PatientChatPage() {
   const [collection, setCollection] = useState<CollectionState>({ step: "idle", data: {} });
   const [dark, setDark] = useState(true);
   const [userId, setUserId] = useState<string>("");
+  const [hospitalName, setHospitalName] = useState("MEDI ASSIST");
+  const [clinicSettings, setClinicSettings] = useState<any>(null);
+  const [policies, setPolicies] = useState<any>({});
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -68,12 +71,36 @@ export default function PatientChatPage() {
 
   // Get user and show initial message
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
         setUserId(session.user.id);
+
+        // Load clinic settings from DB
+        const { data: settings } = await supabase
+          .from('clinic_settings')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+        
+        if (settings) {
+          setClinicSettings(settings);
+          if (settings.clinic_name) setHospitalName(settings.clinic_name);
+        }
+
+        // Load hospital profile & policies from localStorage
+        const savedProfile = localStorage.getItem("hospital_profile");
+        const savedPolicies = localStorage.getItem("hospital_policies");
+        const profileData = savedProfile ? JSON.parse(savedProfile) : {};
+        const policyData = savedPolicies ? JSON.parse(savedPolicies) : {};
+        
+        if (profileData.hospitalName) setHospitalName(profileData.hospitalName);
+        setPolicies({ ...profileData, ...policyData });
+
+        const displayName = profileData.hospitalName || settings?.clinic_name || "MEDI ASSIST";
+
         setMessages([{
           id: 1,
-          text: `Hello! 👋 Main MEDI ASSIST ka AI assistant hoon. Aapki kya help kar sakta hoon?\n\n1. Appointment book karna\n2. Fees jaanna\n3. Clinic timings\n4. Location / address`,
+          text: `Hello! 👋 Main ${displayName} ka AI assistant hoon. Aapki kya help kar sakta hoon?\n\n1. Appointment book karna\n2. Fees jaanna\n3. Clinic timings\n4. Location / address\n5. Hospital policies & rules\n6. Hospital ke baare mein jaankari`,
           sender: "ai",
           timestamp: timeNow(),
         }]);
@@ -240,26 +267,69 @@ export default function PatientChatPage() {
     }
 
     if (lower.includes("fee") || lower.includes("charge") || lower.includes("cost") || lower.includes("paisa") || lower.includes("kitna") || lower.match(/^2$/)) {
-      addAIMessage("💰 Consultation fees:\n\n• First visit: ₹500\n• Follow-up (7 din ke andar): ₹200\n\nKya aap appointment book karna chahenge?");
+      const fees = clinicSettings?.fees || "500";
+      const followUp = clinicSettings?.follow_up_fees || "200";
+      addAIMessage(`💰 Consultation fees:\n\n• First visit: ₹${fees}\n• Follow-up (7 din ke andar): ₹${followUp}\n\nKya aap appointment book karna chahenge?`);
       return;
     }
 
     if (lower.includes("time") || lower.includes("timing") || lower.includes("open") || lower.includes("kab") || lower.match(/^3$/)) {
-      addAIMessage("🕐 Clinic timings:\n\n• Monday - Saturday: 10:00 AM - 6:00 PM\n• Sunday: Closed\n• Lunch: 1:00 PM - 2:00 PM\n\nKya appointment book karna hai?");
+      const timings = clinicSettings?.timings || "Monday - Saturday: 10:00 AM - 6:00 PM, Sunday: Closed";
+      addAIMessage(`🕐 Clinic timings:\n\n${timings}\n\nKya appointment book karna hai?`);
       return;
     }
 
     if (lower.includes("location") || lower.includes("address") || lower.includes("kahan") || lower.match(/^4$/)) {
-      addAIMessage("📍 City Health Clinic\n123 Medical Road, Sector 5\nNear Central Market\n\nKya aur kuch help chahiye?");
+      const addr = clinicSettings?.address || policies?.hospitalAddress || "📍 City Health Clinic\n123 Medical Road, Sector 5\nNear Central Market";
+      addAIMessage(`📍 ${addr}\n\nKya aur kuch help chahiye?`);
+      return;
+    }
+
+    // Policies & Rules
+    if (lower.includes("policy") || lower.includes("policies") || lower.includes("rule") || lower.includes("rules") || lower.includes("niyam") || lower.match(/^5$/)) {
+      let reply = `📋 **${hospitalName} - Policies & Rules:**\n\n`;
+      if (policies.visitorPolicy) reply += `👥 **Visitor Policy:**\n${policies.visitorPolicy}\n\n`;
+      if (policies.refundPolicy) reply += `💰 **Refund Policy:**\n${policies.refundPolicy}\n\n`;
+      if (policies.emergencyProtocol) reply += `🚨 **Emergency Protocol:**\n${policies.emergencyProtocol}\n\n`;
+      if (policies.admissionPolicy) reply += `🏥 **Admission Policy:**\n${policies.admissionPolicy}\n\n`;
+      if (policies.dischargePolicy) reply += `📤 **Discharge Policy:**\n${policies.dischargePolicy}\n\n`;
+      if (policies.consentPolicy) reply += `✅ **Consent Policy:**\n${policies.consentPolicy}\n\n`;
+      if (policies.dataRetentionPolicy) reply += `🗂️ **Data Retention:**\n${policies.dataRetentionPolicy}\n\n`;
+      
+      if (reply === `📋 **${hospitalName} - Policies & Rules:**\n\n`) {
+        reply = `Abhi hospital ki policies set nahi hui hain. Admin se request karein ki Settings > Policies & Rules mein details add karein. 🙏`;
+      }
+      addAIMessage(reply);
+      return;
+    }
+
+    // Hospital info
+    if (lower.includes("hospital") || lower.includes("clinic") || lower.includes("about") || lower.includes("baare") || lower.includes("information") || lower.includes("jaankari") || lower.match(/^6$/)) {
+      let reply = `🏥 **${hospitalName} ki Jaankari:**\n\n`;
+      if (clinicSettings?.doctor_name) reply += `👨‍⚕️ Doctor: ${clinicSettings.doctor_name}\n`;
+      if (clinicSettings?.specialization) reply += `🔬 Specialization: ${clinicSettings.specialization}\n`;
+      if (clinicSettings?.phone) reply += `📞 Phone: ${clinicSettings.phone}\n`;
+      if (clinicSettings?.timings) reply += `🕐 Timings: ${clinicSettings.timings}\n`;
+      if (clinicSettings?.fees) reply += `💰 Fees: ₹${clinicSettings.fees}\n`;
+      if (clinicSettings?.follow_up_fees) reply += `💰 Follow-up: ₹${clinicSettings.follow_up_fees}\n`;
+      if (clinicSettings?.address) reply += `📍 Address: ${clinicSettings.address}\n`;
+      if (policies.hospitalType) reply += `🏢 Type: ${policies.hospitalType}\n`;
+      if (policies.totalBeds) reply += `🛏️ Total Beds: ${policies.totalBeds}\n`;
+      if (policies.hospitalWebsite) reply += `🌐 Website: ${policies.hospitalWebsite}\n`;
+      
+      if (reply === `🏥 **${hospitalName} ki Jaankari:**\n\n`) {
+        reply = `Abhi hospital ki details set nahi hui hain. Admin se request karein ki Settings mein hospital profile update karein. 🙏`;
+      }
+      addAIMessage(reply);
       return;
     }
 
     if (lower.includes("hi") || lower.includes("hello") || lower.includes("hey") || lower.includes("helo")) {
-      addAIMessage("Hello! 👋 Aapki kya help kar sakta hoon?\n\n1. Appointment book karna\n2. Fees jaanna\n3. Clinic timings\n4. Location / address");
+      addAIMessage(`Hello! 👋 Aapki kya help kar sakta hoon?\n\n1. Appointment book karna\n2. Fees jaanna\n3. Clinic timings\n4. Location / address\n5. Hospital policies & rules\n6. Hospital ke baare mein jaankari`);
       return;
     }
 
-    addAIMessage("Main samajh nahi paaya. Kya aap yeh batana chahenge:\n\n1. Appointment book karna\n2. Fees jaanna\n3. Clinic timings\n4. Location / address");
+    addAIMessage("Main samajh nahi paaya. Kya aap yeh batana chahenge:\n\n1. Appointment book karna\n2. Fees jaanna\n3. Clinic timings\n4. Location / address\n5. Hospital policies & rules\n6. Hospital ke baare mein jaankari");
   };
 
   const send = () => {
@@ -293,8 +363,8 @@ export default function PatientChatPage() {
             <Activity className="w-4 h-4 sm:w-5 sm:h-5 neon-text-cyan" />
           </div>
           <div>
-            <h1 className="font-display text-xs sm:text-sm font-bold neon-text-cyan tracking-wider">MEDI ASSIST</h1>
-            <p className="text-[9px] sm:text-[10px] text-muted-foreground">AI Clinic Receptionist • 24/7</p>
+            <h1 className="font-display text-xs sm:text-sm font-bold neon-text-cyan tracking-wider">{hospitalName}</h1>
+            <p className="text-[9px] sm:text-[10px] text-muted-foreground">AI Hospital Assistant • 24/7</p>
           </div>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
