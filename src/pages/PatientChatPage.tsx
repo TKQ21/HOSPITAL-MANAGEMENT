@@ -377,6 +377,7 @@ export default function PatientChatPage() {
       timestamp: timeNow(),
     };
     setMessages(prev => [...prev, userMsg]);
+    saveMessageToDB(input, "patient");
     const currentInput = input;
     setInput("");
     processInput(currentInput);
