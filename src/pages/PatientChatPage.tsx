@@ -66,7 +66,7 @@ export default function PatientChatPage() {
   const saveMessageToDB = async (text: string, sender: "patient" | "ai", uid?: string) => {
     const id = uid || userId;
     if (!id) return;
-    await supabase.from('chat_messages').insert({
+    await (supabase.from as any)('chat_messages').insert({
       user_id: id,
       text,
       sender,
