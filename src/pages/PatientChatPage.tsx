@@ -59,7 +59,19 @@ export default function PatientChatPage() {
   const [hospitalName, setHospitalName] = useState("MEDI ASSIST");
   const [clinicSettings, setClinicSettings] = useState<any>(null);
   const [policies, setPolicies] = useState<any>({});
+  const [chatLoaded, setChatLoaded] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+
+  // Save a message to the database
+  const saveMessageToDB = async (text: string, sender: "patient" | "ai", uid?: string) => {
+    const id = uid || userId;
+    if (!id) return;
+    await supabase.from('chat_messages').insert({
+      user_id: id,
+      text,
+      sender,
+    });
+  };
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
