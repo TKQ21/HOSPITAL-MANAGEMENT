@@ -191,7 +191,10 @@ export default function PatientChatPage() {
       sender: "ai",
       timestamp: timeNow(),
     };
-    setTimeout(() => setMessages(prev => [...prev, aiMsg]), 600);
+    setTimeout(() => {
+      setMessages(prev => [...prev, aiMsg]);
+      saveMessageToDB(text, "ai");
+    }, 600);
   };
 
   const saveAppointment = async (data: CollectionState["data"]) => {
