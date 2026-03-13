@@ -59,7 +59,19 @@ export default function PatientChatPage() {
   const [hospitalName, setHospitalName] = useState("MEDI ASSIST");
   const [clinicSettings, setClinicSettings] = useState<any>(null);
   const [policies, setPolicies] = useState<any>({});
+  const [chatLoaded, setChatLoaded] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+
+  // Save a message to the database
+  const saveMessageToDB = async (text: string, sender: "patient" | "ai", uid?: string) => {
+    const id = uid || userId;
+    if (!id) return;
+    await (supabase.from as any)('chat_messages').insert({
+      user_id: id,
+      text,
+      sender,
+    });
+  };
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
@@ -73,13 +85,14 @@ export default function PatientChatPage() {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        setUserId(session.user.id);
+        const uid = session.user.id;
+        setUserId(uid);
 
         // Load clinic settings from DB
         const { data: settings } = await supabase
           .from('clinic_settings')
           .select('*')
-          .eq('user_id', session.user.id)
+          .eq('user_id', uid)
           .maybeSingle();
         
         if (settings) {
@@ -98,12 +111,32 @@ export default function PatientChatPage() {
 
         const displayName = profileData.hospitalName || settings?.clinic_name || "MEDI ASSIST";
 
-        setMessages([{
-          id: 1,
-          text: `Hello! 👋 Main ${displayName} ka AI assistant hoon. Aapki kya help kar sakta hoon?\n\n1. Appointment book karna\n2. Fees jaanna\n3. Clinic timings\n4. Location / address\n5. Hospital policies & rules\n6. Hospital ke baare mein jaankari`,
-          sender: "ai",
-          timestamp: timeNow(),
-        }]);
+        // Load chat history from DB
+        const { data: chatHistory } = await (supabase.from as any)('chat_messages')
+          .select('*')
+          .eq('user_id', uid)
+          .order('created_at', { ascending: true });
+
+        if (chatHistory && chatHistory.length > 0) {
+          const loadedMessages: Message[] = chatHistory.map((m: any, idx: number) => ({
+            id: idx + 1,
+            text: m.text,
+            sender: m.sender as "patient" | "ai",
+            timestamp: new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          }));
+          setMessages(loadedMessages);
+        } else {
+          // First time - show welcome message
+          const welcomeText = `Hello! 👋 Main ${displayName} ka AI assistant hoon. Aapki kya help kar sakta hoon?\n\n1. Appointment book karna\n2. Fees jaanna\n3. Clinic timings\n4. Location / address\n5. Hospital policies & rules\n6. Hospital ke baare mein jaankari`;
+          setMessages([{
+            id: 1,
+            text: welcomeText,
+            sender: "ai",
+            timestamp: timeNow(),
+          }]);
+          saveMessageToDB(welcomeText, "ai", uid);
+        }
+        setChatLoaded(true);
       }
     });
   }, []);
@@ -158,7 +191,10 @@ export default function PatientChatPage() {
       sender: "ai",
       timestamp: timeNow(),
     };
-    setTimeout(() => setMessages(prev => [...prev, aiMsg]), 600);
+    setTimeout(() => {
+      setMessages(prev => [...prev, aiMsg]);
+      saveMessageToDB(text, "ai");
+    }, 600);
   };
 
   const saveAppointment = async (data: CollectionState["data"]) => {
@@ -341,6 +377,7 @@ export default function PatientChatPage() {
       timestamp: timeNow(),
     };
     setMessages(prev => [...prev, userMsg]);
+    saveMessageToDB(input, "patient");
     const currentInput = input;
     setInput("");
     processInput(currentInput);
