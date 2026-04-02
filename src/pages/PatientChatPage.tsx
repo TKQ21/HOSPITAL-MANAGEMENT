@@ -294,7 +294,7 @@ export default function PatientChatPage() {
           }
           newData.reason = text.trim();
           setCollection({ step: "date", data: newData });
-          addAIMessage("📅 Kaunsi date pe aana chahenge?\n\nFormat: YYYY-MM-DD (jaise: 2026-03-05)\nYa: kal, parso, Monday, etc.");
+          addAIMessage("📅 Kaunsi date pe aana chahenge?\n\nFormat: YYYY-MM-DD (jaise: 2026-04-05)\nYa: today, tomorrow, kal, parso, Monday, etc.");
           return;
         case "date":
           const parsedDate = parseNaturalDate(text);
