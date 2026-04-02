@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Activity, Eye, EyeOff, ArrowLeft, Sun, Moon } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const DEFAULT_EMAIL = "doctor@clinic.com";
 const DEFAULT_USERNAME = "doctor";
@@ -18,13 +19,23 @@ export default function LoginPage() {
     document.documentElement.classList.toggle("dark", dark);
   }, [dark]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
     const savedEmail = localStorage.getItem("doctor_email") || DEFAULT_EMAIL;
     const savedUsername = localStorage.getItem("doctor_username") || DEFAULT_USERNAME;
     const savedPassword = localStorage.getItem("doctor_password") || DEFAULT_PASSWORD;
 
     if ((identifier === savedEmail || identifier === savedUsername) && password === savedPassword) {
+      // Ensure Supabase session exists for DB queries
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        const emailToUse = identifier.includes("@") ? identifier : savedEmail;
+        await supabase.auth.signInWithPassword({
+          email: emailToUse,
+          password: savedPassword,
+        }).catch(() => {});
+      }
       localStorage.setItem("clinic_auth", "true");
       navigate("/dashboard");
     } else {

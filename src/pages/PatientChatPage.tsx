@@ -29,16 +29,51 @@ function isValidPhone(val: string): boolean {
   return digits.length === 10;
 }
 
-function isValidDate(val: string): boolean {
-  // Accept formats: YYYY-MM-DD, DD-MM-YYYY, DD/MM/YYYY, or natural like "kal", "monday" etc
-  const natural = ["kal", "aaj", "parso", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday", "somvar", "mangalvar", "budhvar", "guruvar", "shukravar", "shanivar"];
-  if (natural.some(n => val.toLowerCase().includes(n))) return true;
-  // Check date pattern
-  const datePattern = /^\d{4}-\d{2}-\d{2}$|^\d{2}[-\/]\d{2}[-\/]\d{4}$|^\d{1,2}\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+\d{4}$/i;
-  if (datePattern.test(val.trim())) return true;
-  // Try parsing
+function parseNaturalDate(val: string): string | null {
+  const lower = val.toLowerCase().trim();
+  const today = new Date();
+  const fmt = (d: Date) => d.toISOString().split("T")[0];
+
+  // Hindi/English natural language
+  if (lower === "aaj" || lower === "today") return fmt(today);
+  if (lower === "kal" || lower === "tomorrow" || lower === "tmrw" || lower === "tmr") {
+    const d = new Date(today); d.setDate(d.getDate() + 1); return fmt(d);
+  }
+  if (lower === "parso" || lower === "day after tomorrow") {
+    const d = new Date(today); d.setDate(d.getDate() + 2); return fmt(d);
+  }
+
+  // Day names
+  const dayMap: Record<string, number> = {
+    sunday: 0, somvar: 1, monday: 1, mangalvar: 2, tuesday: 2,
+    budhvar: 3, wednesday: 3, guruvar: 4, thursday: 4,
+    shukravar: 5, friday: 5, shanivar: 6, saturday: 6,
+  };
+  for (const [name, dayNum] of Object.entries(dayMap)) {
+    if (lower.includes(name)) {
+      const d = new Date(today);
+      const diff = (dayNum - d.getDay() + 7) % 7 || 7;
+      d.setDate(d.getDate() + diff);
+      return fmt(d);
+    }
+  }
+
+  // Date patterns
+  const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+  if (datePattern.test(lower)) return lower;
+  
+  const ddmmyyyy = lower.match(/^(\d{2})[-\/](\d{2})[-\/](\d{4})$/);
+  if (ddmmyyyy) return `${ddmmyyyy[3]}-${ddmmyyyy[2]}-${ddmmyyyy[1]}`;
+
+  // Try JS parse
   const d = new Date(val);
-  return !isNaN(d.getTime());
+  if (!isNaN(d.getTime())) return fmt(d);
+
+  return null;
+}
+
+function isValidDate(val: string): boolean {
+  return parseNaturalDate(val) !== null;
 }
 
 function isValidTime(val: string): boolean {
@@ -259,14 +294,15 @@ export default function PatientChatPage() {
           }
           newData.reason = text.trim();
           setCollection({ step: "date", data: newData });
-          addAIMessage("📅 Kaunsi date pe aana chahenge?\n\nFormat: YYYY-MM-DD (jaise: 2026-03-05)\nYa: kal, parso, Monday, etc.");
+          addAIMessage("📅 Kaunsi date pe aana chahenge?\n\nFormat: YYYY-MM-DD (jaise: 2026-04-05)\nYa: today, tomorrow, kal, parso, Monday, etc.");
           return;
         case "date":
-          if (!isValidDate(text)) {
-            addAIMessage("❌ Invalid date! Sahi date enter karein.\n\nFormat: YYYY-MM-DD (jaise: 2026-03-05)\nYa: kal, parso, Monday, etc.");
+          const parsedDate = parseNaturalDate(text);
+          if (!parsedDate) {
+            addAIMessage("❌ Invalid date! Sahi date enter karein.\n\nFormat: YYYY-MM-DD (jaise: 2026-03-05)\nYa: today, tomorrow, kal, parso, Monday, etc.");
             return;
           }
-          newData.date = text.trim();
+          newData.date = parsedDate;
           setCollection({ step: "time", data: newData });
           addAIMessage("🕐 Kis time pe aana chahenge?\n\nClinic timings: 10:00 AM - 6:00 PM\nLunch: 1:00 PM - 2:00 PM\n\nFormat: HH:MM AM/PM (jaise: 11:00 AM, 3:30 PM)");
           return;
