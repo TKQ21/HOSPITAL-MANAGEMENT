@@ -297,11 +297,12 @@ export default function PatientChatPage() {
           addAIMessage("📅 Kaunsi date pe aana chahenge?\n\nFormat: YYYY-MM-DD (jaise: 2026-03-05)\nYa: kal, parso, Monday, etc.");
           return;
         case "date":
-          if (!isValidDate(text)) {
-            addAIMessage("❌ Invalid date! Sahi date enter karein.\n\nFormat: YYYY-MM-DD (jaise: 2026-03-05)\nYa: kal, parso, Monday, etc.");
+          const parsedDate = parseNaturalDate(text);
+          if (!parsedDate) {
+            addAIMessage("❌ Invalid date! Sahi date enter karein.\n\nFormat: YYYY-MM-DD (jaise: 2026-03-05)\nYa: today, tomorrow, kal, parso, Monday, etc.");
             return;
           }
-          newData.date = text.trim();
+          newData.date = parsedDate;
           setCollection({ step: "time", data: newData });
           addAIMessage("🕐 Kis time pe aana chahenge?\n\nClinic timings: 10:00 AM - 6:00 PM\nLunch: 1:00 PM - 2:00 PM\n\nFormat: HH:MM AM/PM (jaise: 11:00 AM, 3:30 PM)");
           return;
