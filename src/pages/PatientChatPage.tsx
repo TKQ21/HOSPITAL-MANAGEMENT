@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, Activity, Moon, Sun, LogOut } from "lucide-react";
+import { Send, Bot, User, Activity, Moon, Sun, LogOut, Download } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -189,13 +189,14 @@ export default function PatientChatPage() {
         filter: `user_id=eq.${userId}`,
       }, (payload) => {
         const n = payload.new as any;
+        const notifText = `📩 ${n.message}`;
         setMessages(prev => [...prev, {
           id: Date.now() + Math.random(),
-          text: n.message,
+          text: notifText,
           sender: "ai" as const,
           timestamp: timeNow(),
         }]);
-        // Mark as read
+        saveMessageToDB(notifText, "ai");
         supabase.from('notifications').update({ is_read: true }).eq('id', n.id).then();
       })
       .subscribe();
@@ -204,20 +205,40 @@ export default function PatientChatPage() {
     supabase.from('notifications').select('*').eq('user_id', userId).eq('is_read', false).then(({ data }) => {
       if (data && data.length > 0) {
         data.forEach(n => {
+          const notifText = `📩 ${n.message}`;
           setMessages(prev => [...prev, {
             id: Date.now() + Math.random(),
-            text: n.message,
+            text: notifText,
             sender: "ai" as const,
             timestamp: timeNow(),
           }]);
+          saveMessageToDB(notifText, "ai");
         });
-        // Mark all read
         supabase.from('notifications').update({ is_read: true }).eq('user_id', userId).eq('is_read', false).then();
       }
     });
 
     return () => { supabase.removeChannel(channel); };
   }, [userId]);
+
+  const downloadMessagePDF = (msg: Message) => {
+    const w = window.open('', '_blank');
+    if (!w) return;
+    w.document.write(`<html><head><title>Notification Receipt</title><style>
+      body{font-family:Arial,sans-serif;padding:40px;color:#222}
+      .header{text-align:center;border-bottom:2px solid #00b4d8;padding-bottom:16px;margin-bottom:24px}
+      .header h1{color:#00b4d8;margin:0;font-size:22px}
+      .content{background:#f8f9fa;border-radius:8px;padding:20px;white-space:pre-line;font-size:14px;line-height:1.6}
+      .footer{text-align:center;margin-top:32px;color:#888;font-size:11px}
+    </style></head><body>
+      <div class="header"><h1>🏥 ${hospitalName}</h1><p>Notification Receipt</p></div>
+      <div class="content">${msg.text}</div>
+      <p style="margin-top:16px;font-size:12px;color:#666">Time: ${msg.timestamp} | Date: ${new Date().toLocaleDateString()}</p>
+      <div class="footer">© 2026 Mohd Kaif • Built with AI assistance</div>
+    </body></html>`);
+    w.document.close();
+    w.print();
+  };
 
   const addAIMessage = (text: string) => {
     const aiMsg: Message = {
@@ -466,7 +487,14 @@ export default function PatientChatPage() {
               msg.sender === "ai" ? "glass-panel border neon-border-green" : "bg-primary/10 border border-primary/30"
             }`}>
               <p className="text-xs sm:text-sm whitespace-pre-line">{msg.text}</p>
-              <p className="text-[9px] sm:text-[10px] text-muted-foreground mt-1">{msg.timestamp}</p>
+              <div className="flex items-center justify-between mt-1">
+                <p className="text-[9px] sm:text-[10px] text-muted-foreground">{msg.timestamp}</p>
+                {msg.sender === "ai" && msg.text.includes("📩") && (
+                  <button onClick={() => downloadMessagePDF(msg)} className="flex items-center gap-1 text-[9px] sm:text-[10px] neon-text-cyan hover:underline" title="Download as PDF">
+                    <Download className="w-3 h-3" /> PDF
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         ))}

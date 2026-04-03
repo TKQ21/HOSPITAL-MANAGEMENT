@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import AuthPage from "@/pages/AuthPage";
 import PatientChatPage from "@/pages/PatientChatPage";
+import LandingPage from "@/pages/LandingPage";
 import LoginPage from "@/pages/LoginPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import DashboardPage from "@/pages/DashboardPage";
@@ -53,7 +54,8 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/" element={user ? <PatientChatPage /> : <AuthPage />} />
+      <Route path="/" element={user ? <PatientChatPage /> : <LandingPage />} />
+      <Route path="/auth" element={user ? <PatientChatPage /> : <AuthPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route element={<DashboardLayout />}>
