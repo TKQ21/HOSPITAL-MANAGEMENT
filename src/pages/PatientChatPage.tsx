@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, Activity, Moon, Sun, LogOut } from "lucide-react";
+import { Send, Bot, User, Activity, Moon, Sun, LogOut, Download } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
