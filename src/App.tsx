@@ -54,7 +54,8 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/" element={user ? <PatientChatPage /> : <AuthPage />} />
+      <Route path="/" element={user ? <PatientChatPage /> : <LandingPage />} />
+      <Route path="/auth" element={user ? <PatientChatPage /> : <AuthPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route element={<DashboardLayout />}>
