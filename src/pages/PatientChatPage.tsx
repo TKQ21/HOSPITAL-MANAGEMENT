@@ -487,7 +487,14 @@ export default function PatientChatPage() {
               msg.sender === "ai" ? "glass-panel border neon-border-green" : "bg-primary/10 border border-primary/30"
             }`}>
               <p className="text-xs sm:text-sm whitespace-pre-line">{msg.text}</p>
-              <p className="text-[9px] sm:text-[10px] text-muted-foreground mt-1">{msg.timestamp}</p>
+              <div className="flex items-center justify-between mt-1">
+                <p className="text-[9px] sm:text-[10px] text-muted-foreground">{msg.timestamp}</p>
+                {msg.sender === "ai" && msg.text.includes("📩") && (
+                  <button onClick={() => downloadMessagePDF(msg)} className="flex items-center gap-1 text-[9px] sm:text-[10px] neon-text-cyan hover:underline" title="Download as PDF">
+                    <Download className="w-3 h-3" /> PDF
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         ))}
