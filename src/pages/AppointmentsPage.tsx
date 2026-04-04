@@ -34,6 +34,32 @@ export default function AppointmentsPage() {
   const [newDate, setNewDate] = useState("");
   const [newTime, setNewTime] = useState("");
 
+  const sendPatientNotification = async (
+    appt: Appointment,
+    type: "confirmed" | "cancelled" | "rescheduled",
+    overrides?: { newDate?: string; newTime?: string }
+  ) => {
+    const nextDate = overrides?.newDate || appt.appointment_date;
+    const nextTime = overrides?.newTime || appt.appointment_time;
+
+    const messageByType = {
+      confirmed: `✅ ${appt.patient_name} ji, aapka appointment confirm ho gaya hai.\n\n📅 Date: ${appt.appointment_date}\n🕐 Time: ${appt.appointment_time}\n🏥 Reason: ${appt.reason}\n\nPlease diye gaye time par aayein. Dhanyavaad! 🙏`,
+      cancelled: `❌ ${appt.patient_name} ji, aapka appointment cancel kar diya gaya hai.\n\n📅 Date: ${appt.appointment_date}\n🕐 Time: ${appt.appointment_time}\n🏥 Reason: ${appt.reason}\n\nNayi booking ke liye chat assistant se dubara request kar sakte hain.`,
+      rescheduled: `🔄 ${appt.patient_name} ji, aapka appointment reschedule ho gaya hai.\n\n📅 Nayi Date: ${nextDate}\n🕐 Naya Time: ${nextTime}\n🏥 Reason: ${appt.reason}\n\nPlease is updated time par aayein. Dhanyavaad! 🙏`,
+    } as const;
+
+    await supabase.from('notifications').insert({
+      user_id: appt.user_id,
+      phone: appt.phone,
+      patient_name: appt.patient_name,
+      message: messageByType[type],
+      old_date: type === "rescheduled" ? appt.appointment_date : null,
+      old_time: type === "rescheduled" ? appt.appointment_time : null,
+      new_date: type === "rescheduled" ? nextDate : null,
+      new_time: type === "rescheduled" ? nextTime : null,
+    });
+  };
+
   const loadAppointments = async () => {
     const { data } = await supabase.from('appointments').select('*').order('created_at', { ascending: false });
     if (data) setAppointments(data as Appointment[]);
@@ -52,13 +78,18 @@ export default function AppointmentsPage() {
   }, []);
 
   const updateStatus = async (id: string, status: string) => {
-    await supabase.from('appointments').update({ status }).eq('id', id);
+    const appt = appointments.find(a => a.id === id);
+    const { error } = await supabase.from('appointments').update({ status }).eq('id', id);
+    if (error) return;
+
+    if (appt && (status === "confirmed" || status === "cancelled")) {
+      await sendPatientNotification(appt, status);
+    }
     
     if (status === "visited") {
-      const appt = appointments.find(a => a.id === id);
       if (appt) {
         // Update patient visit count
-        const { data: patient } = await supabase.from('patients').select('*').eq('phone', appt.phone).maybeSingle();
+        const { data: patient } = await supabase.from('patients').select('*').eq('phone', appt.phone).eq('user_id', appt.user_id).maybeSingle();
         if (patient) {
           await supabase.from('patients').update({ 
             visits: (patient.visits || 0) + 1, 
@@ -74,25 +105,16 @@ export default function AppointmentsPage() {
     if (!rescheduleAppt || !newDate || !newTime) return;
     
     // Update appointment
-    await supabase.from('appointments').update({
+    const { error } = await supabase.from('appointments').update({
       appointment_date: newDate,
       appointment_time: newTime,
       rescheduled_date: newDate,
       rescheduled_time: newTime,
       status: "confirmed",
     }).eq('id', rescheduleAppt.id);
+    if (error) return;
 
-    // Create notification for patient
-    await supabase.from('notifications').insert({
-      user_id: rescheduleAppt.user_id,
-      phone: rescheduleAppt.phone,
-      patient_name: rescheduleAppt.patient_name,
-      message: `🔄 ${rescheduleAppt.patient_name} ji, aapka appointment reschedule ho gaya hai.\n\n📅 Nayi Date: ${newDate}\n🕐 Naya Time: ${newTime}\n🏥 Reason: ${rescheduleAppt.reason}\n📱 Aapke number ${rescheduleAppt.phone} par yeh notification bheja gaya hai.\n\nPlease is time pe aayein. Dhanyavaad! 🙏`,
-      old_date: rescheduleAppt.appointment_date,
-      old_time: rescheduleAppt.appointment_time,
-      new_date: newDate,
-      new_time: newTime,
-    });
+    await sendPatientNotification(rescheduleAppt, "rescheduled", { newDate, newTime });
 
     setRescheduleAppt(null);
     setNewDate("");
