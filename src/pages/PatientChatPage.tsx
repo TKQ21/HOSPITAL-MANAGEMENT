@@ -471,9 +471,6 @@ export default function PatientChatPage() {
           <button onClick={() => setDark(!dark)} className="p-2 rounded-lg hover:bg-secondary/50 transition-colors">
             {dark ? <Sun className="w-4 h-4 sm:w-5 sm:h-5 neon-text-yellow" /> : <Moon className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />}
           </button>
-          <Link to="/login" className="text-[9px] sm:text-[10px] px-2 sm:px-3 py-1.5 rounded-lg border border-border hover:bg-secondary/50 text-muted-foreground transition-colors">
-            Doctor Login
-          </Link>
           <button onClick={handleLogout} className="p-2 rounded-lg hover:bg-destructive/20 transition-colors" title="Logout">
             <LogOut className="w-4 h-4 text-muted-foreground" />
           </button>
