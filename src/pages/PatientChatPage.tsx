@@ -287,6 +287,48 @@ export default function PatientChatPage() {
     }
   };
 
+  const getAIReply = async (text: string): Promise<string> => {
+    try {
+      const { data, error } = await supabase.functions.invoke('hospital-chat', {
+        body: {
+          message: text,
+          clinicSettings: clinicSettings || {},
+          policies: policies || {},
+          hospitalName,
+        },
+      });
+      if (error) throw error;
+      return data?.reply || "Sorry, kuch problem ho gayi. Please dubara try karein.";
+    } catch {
+      return "Sorry, abhi response nahi aa raha. Please call karein: 011-1234-5678";
+    }
+  };
+
+  const addAIMessageAsync = async (text: string) => {
+    // Show typing indicator
+    const typingId = Date.now() + 99;
+    const typingMsg: Message = { id: typingId, text: "⏳ Typing...", sender: "ai", timestamp: timeNow() };
+    setMessages(prev => [...prev, typingMsg]);
+
+    const reply = await getAIReply(text);
+
+    // Check if AI wants to trigger appointment booking
+    try {
+      const parsed = JSON.parse(reply);
+      if (parsed.action === "book_appointment") {
+        setMessages(prev => prev.filter(m => m.id !== typingId));
+        setCollection({ step: "name", data: {} });
+        addAIMessage("Zaroor! Appointment ke liye kuch details chahiye.\n\nSabse pehle, aapka poora naam bataiye:");
+        return;
+      }
+    } catch {
+      // Not JSON, use as regular reply
+    }
+
+    setMessages(prev => prev.map(m => m.id === typingId ? { ...m, id: Date.now() + 1, text: reply } : m));
+    saveMessageToDB(reply, "ai");
+  };
+
   const processInput = (text: string) => {
     const lower = text.toLowerCase().trim();
 
@@ -295,7 +337,6 @@ export default function PatientChatPage() {
 
       switch (collection.step) {
         case "name":
-          // Name should be text only, no numbers
           if (/^\d+$/.test(text.trim())) {
             addAIMessage("❌ Invalid name! Sirf apna naam likhein, numbers nahi. Please dubara enter karein:");
             return;
@@ -314,7 +355,6 @@ export default function PatientChatPage() {
           addAIMessage("Aap kis problem / bimari ke liye doctor se milna chahte hain?\n\nFor example: Bukhar, Pet dard, Follow-up, Report dikhana, General check-up, etc.");
           return;
         case "reason":
-          // Reason should be text, not just numbers
           if (/^\d+$/.test(text.trim())) {
             addAIMessage("❌ Invalid reason! Apni problem ya bimari ka naam likhein. Numbers nahi:");
             return;
@@ -359,76 +399,8 @@ export default function PatientChatPage() {
       }
     }
 
-    if (lower.includes("appointment") || lower.includes("book") || lower.includes("milna") || lower.includes("dikhana") || lower.match(/^1$/)) {
-      setCollection({ step: "name", data: {} });
-      addAIMessage("Zaroor! Appointment ke liye kuch details chahiye.\n\nSabse pehle, aapka poora naam bataiye:");
-      return;
-    }
-
-    if (lower.includes("fee") || lower.includes("charge") || lower.includes("cost") || lower.includes("paisa") || lower.includes("kitna") || lower.match(/^2$/)) {
-      const fees = clinicSettings?.fees || "500";
-      const followUp = clinicSettings?.follow_up_fees || "200";
-      addAIMessage(`💰 Consultation fees:\n\n• First visit: ₹${fees}\n• Follow-up (7 din ke andar): ₹${followUp}\n\nKya aap appointment book karna chahenge?`);
-      return;
-    }
-
-    if (lower.includes("time") || lower.includes("timing") || lower.includes("open") || lower.includes("kab") || lower.match(/^3$/)) {
-      const timings = clinicSettings?.timings || "Monday - Saturday: 10:00 AM - 6:00 PM, Sunday: Closed";
-      addAIMessage(`🕐 Clinic timings:\n\n${timings}\n\nKya appointment book karna hai?`);
-      return;
-    }
-
-    if (lower.includes("location") || lower.includes("address") || lower.includes("kahan") || lower.match(/^4$/)) {
-      const addr = clinicSettings?.address || policies?.hospitalAddress || "📍 City Health Clinic\n123 Medical Road, Sector 5\nNear Central Market";
-      addAIMessage(`📍 ${addr}\n\nKya aur kuch help chahiye?`);
-      return;
-    }
-
-    // Policies & Rules
-    if (lower.includes("policy") || lower.includes("policies") || lower.includes("rule") || lower.includes("rules") || lower.includes("niyam") || lower.match(/^5$/)) {
-      let reply = `📋 **${hospitalName} - Policies & Rules:**\n\n`;
-      if (policies.visitorPolicy) reply += `👥 **Visitor Policy:**\n${policies.visitorPolicy}\n\n`;
-      if (policies.refundPolicy) reply += `💰 **Refund Policy:**\n${policies.refundPolicy}\n\n`;
-      if (policies.emergencyProtocol) reply += `🚨 **Emergency Protocol:**\n${policies.emergencyProtocol}\n\n`;
-      if (policies.admissionPolicy) reply += `🏥 **Admission Policy:**\n${policies.admissionPolicy}\n\n`;
-      if (policies.dischargePolicy) reply += `📤 **Discharge Policy:**\n${policies.dischargePolicy}\n\n`;
-      if (policies.consentPolicy) reply += `✅ **Consent Policy:**\n${policies.consentPolicy}\n\n`;
-      if (policies.dataRetentionPolicy) reply += `🗂️ **Data Retention:**\n${policies.dataRetentionPolicy}\n\n`;
-      
-      if (reply === `📋 **${hospitalName} - Policies & Rules:**\n\n`) {
-        reply = `Abhi hospital ki policies set nahi hui hain. Admin se request karein ki Settings > Policies & Rules mein details add karein. 🙏`;
-      }
-      addAIMessage(reply);
-      return;
-    }
-
-    // Hospital info
-    if (lower.includes("hospital") || lower.includes("clinic") || lower.includes("about") || lower.includes("baare") || lower.includes("information") || lower.includes("jaankari") || lower.match(/^6$/)) {
-      let reply = `🏥 **${hospitalName} ki Jaankari:**\n\n`;
-      if (clinicSettings?.doctor_name) reply += `👨‍⚕️ Doctor: ${clinicSettings.doctor_name}\n`;
-      if (clinicSettings?.specialization) reply += `🔬 Specialization: ${clinicSettings.specialization}\n`;
-      if (clinicSettings?.phone) reply += `📞 Phone: ${clinicSettings.phone}\n`;
-      if (clinicSettings?.timings) reply += `🕐 Timings: ${clinicSettings.timings}\n`;
-      if (clinicSettings?.fees) reply += `💰 Fees: ₹${clinicSettings.fees}\n`;
-      if (clinicSettings?.follow_up_fees) reply += `💰 Follow-up: ₹${clinicSettings.follow_up_fees}\n`;
-      if (clinicSettings?.address) reply += `📍 Address: ${clinicSettings.address}\n`;
-      if (policies.hospitalType) reply += `🏢 Type: ${policies.hospitalType}\n`;
-      if (policies.totalBeds) reply += `🛏️ Total Beds: ${policies.totalBeds}\n`;
-      if (policies.hospitalWebsite) reply += `🌐 Website: ${policies.hospitalWebsite}\n`;
-      
-      if (reply === `🏥 **${hospitalName} ki Jaankari:**\n\n`) {
-        reply = `Abhi hospital ki details set nahi hui hain. Admin se request karein ki Settings mein hospital profile update karein. 🙏`;
-      }
-      addAIMessage(reply);
-      return;
-    }
-
-    if (lower.includes("hi") || lower.includes("hello") || lower.includes("hey") || lower.includes("helo")) {
-      addAIMessage(`Hello! 👋 Aapki kya help kar sakta hoon?\n\n1. Appointment book karna\n2. Fees jaanna\n3. Clinic timings\n4. Location / address\n5. Hospital policies & rules\n6. Hospital ke baare mein jaankari`);
-      return;
-    }
-
-    addAIMessage("Main samajh nahi paaya. Kya aap yeh batana chahenge:\n\n1. Appointment book karna\n2. Fees jaanna\n3. Clinic timings\n4. Location / address\n5. Hospital policies & rules\n6. Hospital ke baare mein jaankari");
+    // Use AI for all other messages - semantic understanding
+    addAIMessageAsync(text);
   };
 
   const send = () => {
