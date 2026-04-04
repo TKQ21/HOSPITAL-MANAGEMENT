@@ -1,5 +1,5 @@
 import { Menu, Moon, Sun, Bell, LogOut, Download } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -12,6 +12,7 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
   const [showNotif, setShowNotif] = useState(false);
   const [pendingAppts, setPendingAppts] = useState<any[]>([]);
   const [notifMessages, setNotifMessages] = useState<any[]>([]);
+  const sessionStartedAt = useRef(new Date().toISOString());
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -19,16 +20,25 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
   }, [dark]);
 
   const loadPending = async () => {
-    const { data } = await supabase.from('appointments').select('*').eq('status', 'pending').order('created_at', { ascending: false });
-    if (data) setPendingAppts(data);
+    const { data } = await supabase
+      .from('appointments')
+      .select('*')
+      .eq('status', 'pending')
+      .gte('created_at', sessionStartedAt.current)
+      .order('created_at', { ascending: false });
+    setPendingAppts(data || []);
   };
 
   const loadNotifications = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) return;
-    // Doctor sees all notifications (reschedule/cancel messages)
-    const { data } = await supabase.from('notifications').select('*').order('created_at', { ascending: false });
-    if (data) setNotifMessages(data);
+    const { data } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('is_read', false)
+      .gte('created_at', sessionStartedAt.current)
+      .order('created_at', { ascending: false });
+    setNotifMessages(data || []);
   };
 
   useEffect(() => {

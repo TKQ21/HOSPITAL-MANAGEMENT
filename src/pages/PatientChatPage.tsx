@@ -4,10 +4,12 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Message {
-  id: number;
+  id: number | string;
   text: string;
   sender: "patient" | "ai";
   timestamp: string;
+  createdAt?: string;
+  kind?: "chat" | "notification";
 }
 
 interface CollectionState {
@@ -22,6 +24,7 @@ interface CollectionState {
 }
 
 const timeNow = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+const formatMessageTime = (value: string) => new Date(value).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
 // Validation helpers
 function isValidPhone(val: string): boolean {
@@ -97,6 +100,15 @@ export default function PatientChatPage() {
   const [chatLoaded, setChatLoaded] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
 
+  const buildNotificationMessage = (notification: any): Message => ({
+    id: `notification-${notification.id}`,
+    text: `📩 ${notification.message}`,
+    sender: "ai",
+    timestamp: formatMessageTime(notification.created_at),
+    createdAt: notification.created_at,
+    kind: "notification",
+  });
+
   // Save a message to the database
   const saveMessageToDB = async (text: string, sender: "patient" | "ai", uid?: string) => {
     const id = uid || userId;
@@ -146,19 +158,34 @@ export default function PatientChatPage() {
 
         const displayName = profileData.hospitalName || settings?.clinic_name || "MEDI ASSIST";
 
-        // Load chat history from DB
-        const { data: chatHistory } = await (supabase.from as any)('chat_messages')
-          .select('*')
-          .eq('user_id', uid)
-          .order('created_at', { ascending: true });
+        const [{ data: chatHistory }, { data: notificationHistory }] = await Promise.all([
+          (supabase.from as any)('chat_messages')
+            .select('*')
+            .eq('user_id', uid)
+            .order('created_at', { ascending: true }),
+          supabase
+            .from('notifications')
+            .select('*')
+            .eq('user_id', uid)
+            .order('created_at', { ascending: true }),
+        ]);
 
-        if (chatHistory && chatHistory.length > 0) {
-          const loadedMessages: Message[] = chatHistory.map((m: any, idx: number) => ({
-            id: idx + 1,
-            text: m.text,
-            sender: m.sender as "patient" | "ai",
-            timestamp: new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          }));
+        const notificationTexts = new Set((notificationHistory || []).map((n: any) => `📩 ${n.message}`));
+        const loadedMessages: Message[] = [
+          ...((chatHistory || []) as any[])
+            .filter((m: any) => !(m.sender === "ai" && typeof m.text === "string" && m.text.startsWith("📩") && notificationTexts.has(m.text)))
+            .map((m: any, idx: number) => ({
+              id: m.id || `chat-${idx + 1}`,
+              text: m.text,
+              sender: m.sender as "patient" | "ai",
+              timestamp: formatMessageTime(m.created_at),
+              createdAt: m.created_at,
+              kind: "chat" as const,
+            })),
+          ...((notificationHistory || []) as any[]).map(buildNotificationMessage),
+        ].sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
+
+        if (loadedMessages.length > 0) {
           setMessages(loadedMessages);
         } else {
           // First time - show welcome message
@@ -171,6 +198,8 @@ export default function PatientChatPage() {
           }]);
           saveMessageToDB(welcomeText, "ai", uid);
         }
+
+        await supabase.from('notifications').update({ is_read: true }).eq('user_id', uid).eq('is_read', false);
         setChatLoaded(true);
       }
     });
@@ -178,7 +207,7 @@ export default function PatientChatPage() {
 
   // Listen for reschedule notifications via realtime
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !chatLoaded) return;
     
     const channel = supabase
       .channel('patient-notifications')
@@ -189,37 +218,14 @@ export default function PatientChatPage() {
         filter: `user_id=eq.${userId}`,
       }, (payload) => {
         const n = payload.new as any;
-        const notifText = `📩 ${n.message}`;
-        setMessages(prev => [...prev, {
-          id: Date.now() + Math.random(),
-          text: notifText,
-          sender: "ai" as const,
-          timestamp: timeNow(),
-        }]);
-        saveMessageToDB(notifText, "ai");
+        const notifMessage = buildNotificationMessage(n);
+        setMessages(prev => prev.some(msg => msg.id === notifMessage.id) ? prev : [...prev, notifMessage]);
         supabase.from('notifications').update({ is_read: true }).eq('id', n.id).then();
       })
       .subscribe();
 
-    // Also check existing unread notifications
-    supabase.from('notifications').select('*').eq('user_id', userId).eq('is_read', false).then(({ data }) => {
-      if (data && data.length > 0) {
-        data.forEach(n => {
-          const notifText = `📩 ${n.message}`;
-          setMessages(prev => [...prev, {
-            id: Date.now() + Math.random(),
-            text: notifText,
-            sender: "ai" as const,
-            timestamp: timeNow(),
-          }]);
-          saveMessageToDB(notifText, "ai");
-        });
-        supabase.from('notifications').update({ is_read: true }).eq('user_id', userId).eq('is_read', false).then();
-      }
-    });
-
     return () => { supabase.removeChannel(channel); };
-  }, [userId]);
+  }, [userId, chatLoaded]);
 
   const downloadMessagePDF = (msg: Message) => {
     const w = window.open('', '_blank');
@@ -233,7 +239,7 @@ export default function PatientChatPage() {
     </style></head><body>
       <div class="header"><h1>🏥 ${hospitalName}</h1><p>Notification Receipt</p></div>
       <div class="content">${msg.text}</div>
-      <p style="margin-top:16px;font-size:12px;color:#666">Time: ${msg.timestamp} | Date: ${new Date().toLocaleDateString()}</p>
+      <p style="margin-top:16px;font-size:12px;color:#666">Time: ${msg.timestamp} | Date: ${msg.createdAt ? new Date(msg.createdAt).toLocaleDateString() : new Date().toLocaleDateString()}</p>
       <div class="footer">© 2026 Mohd Kaif • Built with AI assistance</div>
     </body></html>`);
     w.document.close();
@@ -489,7 +495,7 @@ export default function PatientChatPage() {
               <p className="text-xs sm:text-sm whitespace-pre-line">{msg.text}</p>
               <div className="flex items-center justify-between mt-1">
                 <p className="text-[9px] sm:text-[10px] text-muted-foreground">{msg.timestamp}</p>
-                {msg.sender === "ai" && msg.text.includes("📩") && (
+                {msg.sender === "ai" && (msg.kind === "notification" || msg.text.includes("📩")) && (
                   <button onClick={() => downloadMessagePDF(msg)} className="flex items-center gap-1 text-[9px] sm:text-[10px] neon-text-cyan hover:underline" title="Download as PDF">
                     <Download className="w-3 h-3" /> PDF
                   </button>
