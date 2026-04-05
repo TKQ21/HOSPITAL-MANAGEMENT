@@ -60,9 +60,10 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
 
   const totalCount = pendingAppts.length + notifMessages.length;
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     localStorage.removeItem("clinic_auth");
-    navigate("/login");
+    await supabase.auth.signOut();
+    navigate("/");
   };
 
   const downloadNotificationPDF = (notif: any) => {
