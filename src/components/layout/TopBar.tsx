@@ -211,6 +211,37 @@ Date: ${new Date(notif.created_at).toLocaleString()}
                 </div>
               )}
 
+              {/* Permission Requests */}
+              {permissionRequests.length > 0 && (
+                <div className="mb-3">
+                  <p className="text-[10px] font-bold neon-text-yellow mb-1">🔒 PERMISSION REQUESTS</p>
+                  <div className="space-y-2">
+                    {permissionRequests.map((pr: any) => (
+                      <div key={pr.id} className="p-2 rounded-lg bg-secondary/30 text-xs border border-neon-yellow/20">
+                        <p className="font-medium neon-text-yellow">🔐 {pr.patient_name}</p>
+                        <p className="text-muted-foreground mt-0.5">Wants to know about: <span className="font-medium">{pr.request_type}</span></p>
+                        <p className="text-muted-foreground text-[10px] italic">"{pr.question}"</p>
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handlePermission(pr.id, 'approved'); }}
+                            className="flex items-center gap-1 text-[10px] px-2 py-1 rounded bg-green-500/20 hover:bg-green-500/30 text-green-400 transition-colors"
+                          >
+                            <ShieldCheck className="w-3 h-3" /> Approve
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handlePermission(pr.id, 'denied'); }}
+                            className="flex items-center gap-1 text-[10px] px-2 py-1 rounded bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-colors"
+                          >
+                            <ShieldX className="w-3 h-3" /> Deny
+                          </button>
+                        </div>
+                        <p className="text-[9px] text-muted-foreground mt-1">{new Date(pr.created_at).toLocaleString()}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Pending appointment requests */}
               {pendingAppts.length > 0 && (
                 <div>
