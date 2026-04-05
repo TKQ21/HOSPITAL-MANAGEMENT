@@ -141,7 +141,7 @@ export default function LoginPage() {
         </form>
 
         <p className="text-[10px] text-muted-foreground text-center mt-6">
-          Default: doctor@clinic.com / admin123
+          © 2026 Medi Assist
         </p>
       </div>
     </div>
