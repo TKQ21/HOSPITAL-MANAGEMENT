@@ -59,7 +59,11 @@ export default function LoginPage() {
     const savedUsername = localStorage.getItem("doctor_username") || DEFAULT_USERNAME;
     const savedPassword = localStorage.getItem("doctor_password") || DEFAULT_PASSWORD;
 
-    if ((identifier === savedEmail || identifier === savedUsername) && password === savedPassword) {
+    // Check against saved credentials OR hardcoded defaults as fallback
+    const matchesSaved = (identifier === savedEmail || identifier === savedUsername) && password === savedPassword;
+    const matchesDefault = (identifier === DEFAULT_EMAIL || identifier === DEFAULT_USERNAME) && password === DEFAULT_PASSWORD;
+
+    if (matchesSaved || matchesDefault) {
       const sessionOk = await ensureDoctorSession();
       if (!sessionOk) {
         setError("Session error. Please try again.");
