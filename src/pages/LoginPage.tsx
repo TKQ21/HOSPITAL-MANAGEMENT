@@ -6,12 +6,15 @@ import { supabase } from "@/integrations/supabase/client";
 const DEFAULT_EMAIL = "doctor@clinic.com";
 const DEFAULT_USERNAME = "doctor";
 const DEFAULT_PASSWORD = "admin123";
+const DOCTOR_SUPABASE_EMAIL = "doctor-admin@mediassist.internal";
+const DOCTOR_SUPABASE_PASSWORD = "MediAssist#Admin2026!";
 
 export default function LoginPage() {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const [dark, setDark] = useState(true);
   const navigate = useNavigate();
 
@@ -19,27 +22,56 @@ export default function LoginPage() {
     document.documentElement.classList.toggle("dark", dark);
   }, [dark]);
 
+  const ensureDoctorSession = async () => {
+    // Try sign in first
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: DOCTOR_SUPABASE_EMAIL,
+      password: DOCTOR_SUPABASE_PASSWORD,
+    });
+    if (!signInError) return true;
+
+    // If account doesn't exist, create it
+    if (signInError.message.includes("Invalid login")) {
+      const { error: signUpError } = await supabase.auth.signUp({
+        email: DOCTOR_SUPABASE_EMAIL,
+        password: DOCTOR_SUPABASE_PASSWORD,
+      });
+      if (signUpError) {
+        console.error("Doctor account creation failed:", signUpError);
+        return false;
+      }
+      // Sign in after signup
+      const { error: retryError } = await supabase.auth.signInWithPassword({
+        email: DOCTOR_SUPABASE_EMAIL,
+        password: DOCTOR_SUPABASE_PASSWORD,
+      });
+      return !retryError;
+    }
+    return false;
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setLoading(true);
+
     const savedEmail = localStorage.getItem("doctor_email") || DEFAULT_EMAIL;
     const savedUsername = localStorage.getItem("doctor_username") || DEFAULT_USERNAME;
     const savedPassword = localStorage.getItem("doctor_password") || DEFAULT_PASSWORD;
 
     if ((identifier === savedEmail || identifier === savedUsername) && password === savedPassword) {
-      // Ensure Supabase session exists for DB queries
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        const emailToUse = identifier.includes("@") ? identifier : savedEmail;
-        await supabase.auth.signInWithPassword({
-          email: emailToUse,
-          password: savedPassword,
-        }).catch(() => {});
+      const sessionOk = await ensureDoctorSession();
+      if (!sessionOk) {
+        setError("Session error. Please try again.");
+        setLoading(false);
+        return;
       }
       localStorage.setItem("clinic_auth", "true");
+      setLoading(false);
       navigate("/dashboard");
     } else {
       setError("Invalid username/email or password");
+      setLoading(false);
     }
   };
 
@@ -51,7 +83,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm glass-panel rounded-2xl border neon-border-cyan neon-glow-cyan p-8 animate-slide-in relative z-10">
         <div className="flex items-center justify-between mb-6">
           <Link to="/" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
-            <ArrowLeft className="w-3 h-3" /> Back to AI Chat
+            <ArrowLeft className="w-3 h-3" /> Back
           </Link>
           <button onClick={() => setDark(!dark)} className="p-2 rounded-lg hover:bg-secondary/50 transition-colors">
             {dark ? <Sun className="w-4 h-4 neon-text-yellow" /> : <Moon className="w-4 h-4 text-muted-foreground" />}
@@ -97,9 +129,10 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            className="w-full py-2.5 rounded-lg bg-primary/20 border neon-border-cyan neon-glow-cyan hover:bg-primary/30 transition-all font-display text-sm font-bold neon-text-cyan tracking-wider"
+            disabled={loading}
+            className="w-full py-2.5 rounded-lg bg-primary/20 border neon-border-cyan neon-glow-cyan hover:bg-primary/30 transition-all font-display text-sm font-bold neon-text-cyan tracking-wider disabled:opacity-50"
           >
-            LOGIN
+            {loading ? "Logging in..." : "LOGIN"}
           </button>
         </form>
 
