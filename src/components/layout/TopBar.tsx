@@ -42,9 +42,18 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
     setNotifMessages(data || []);
   };
 
+  const loadPermissionRequests = async () => {
+    const { data } = await (supabase.from as any)('permission_requests')
+      .select('*')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+    setPermissionRequests(data || []);
+  };
+
   useEffect(() => {
     loadPending();
     loadNotifications();
+    loadPermissionRequests();
     const ch1 = supabase
       .channel('topbar-appointments')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, () => loadPending())
@@ -53,13 +62,25 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
       .channel('topbar-notif-messages')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => loadNotifications())
       .subscribe();
+    const ch3 = supabase
+      .channel('topbar-permissions')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'permission_requests' }, () => loadPermissionRequests())
+      .subscribe();
     return () => {
       supabase.removeChannel(ch1);
       supabase.removeChannel(ch2);
+      supabase.removeChannel(ch3);
     };
   }, []);
 
-  const totalCount = pendingAppts.length + notifMessages.length;
+  const totalCount = pendingAppts.length + notifMessages.length + permissionRequests.length;
+
+  const handlePermission = async (id: string, status: 'approved' | 'denied') => {
+    await (supabase.from as any)('permission_requests')
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('id', id);
+    setPermissionRequests(prev => prev.filter(p => p.id !== id));
+  };
 
   const handleLogout = async () => {
     localStorage.removeItem("clinic_auth");
