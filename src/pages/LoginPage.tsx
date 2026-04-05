@@ -3,9 +3,9 @@ import { useNavigate, Link } from "react-router-dom";
 import { Activity, Eye, EyeOff, ArrowLeft, Sun, Moon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
-const DEFAULT_EMAIL = "doctor@clinic.com";
-const DEFAULT_USERNAME = "doctor";
-const DEFAULT_PASSWORD = "admin123";
+const DEFAULT_EMAIL = "thekaifqureshi21@gmail.com";
+const DEFAULT_USERNAME = "TKQ";
+const DEFAULT_PASSWORD = "KQ741953";
 const DOCTOR_SUPABASE_EMAIL = "doctor-admin@mediassist.internal";
 const DOCTOR_SUPABASE_PASSWORD = "MediAssist#Admin2026!";
 
