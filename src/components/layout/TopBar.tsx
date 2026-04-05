@@ -1,4 +1,4 @@
-import { Menu, Moon, Sun, Bell, LogOut, Download } from "lucide-react";
+import { Menu, Moon, Sun, Bell, LogOut, Download, ShieldCheck, ShieldX } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +12,7 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
   const [showNotif, setShowNotif] = useState(false);
   const [pendingAppts, setPendingAppts] = useState<any[]>([]);
   const [notifMessages, setNotifMessages] = useState<any[]>([]);
+  const [permissionRequests, setPermissionRequests] = useState<any[]>([]);
   const sessionStartedAt = useRef(new Date().toISOString());
   const navigate = useNavigate();
 
@@ -41,9 +42,18 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
     setNotifMessages(data || []);
   };
 
+  const loadPermissionRequests = async () => {
+    const { data } = await (supabase.from as any)('permission_requests')
+      .select('*')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+    setPermissionRequests(data || []);
+  };
+
   useEffect(() => {
     loadPending();
     loadNotifications();
+    loadPermissionRequests();
     const ch1 = supabase
       .channel('topbar-appointments')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, () => loadPending())
@@ -52,13 +62,25 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
       .channel('topbar-notif-messages')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => loadNotifications())
       .subscribe();
+    const ch3 = supabase
+      .channel('topbar-permissions')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'permission_requests' }, () => loadPermissionRequests())
+      .subscribe();
     return () => {
       supabase.removeChannel(ch1);
       supabase.removeChannel(ch2);
+      supabase.removeChannel(ch3);
     };
   }, []);
 
-  const totalCount = pendingAppts.length + notifMessages.length;
+  const totalCount = pendingAppts.length + notifMessages.length + permissionRequests.length;
+
+  const handlePermission = async (id: string, status: 'approved' | 'denied') => {
+    await (supabase.from as any)('permission_requests')
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('id', id);
+    setPermissionRequests(prev => prev.filter(p => p.id !== id));
+  };
 
   const handleLogout = async () => {
     localStorage.removeItem("clinic_auth");
@@ -183,6 +205,37 @@ Date: ${new Date(notif.created_at).toLocaleString()}
                             <Download className="w-3 h-3" /> PDF
                           </button>
                         </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Permission Requests */}
+              {permissionRequests.length > 0 && (
+                <div className="mb-3">
+                  <p className="text-[10px] font-bold neon-text-yellow mb-1">🔒 PERMISSION REQUESTS</p>
+                  <div className="space-y-2">
+                    {permissionRequests.map((pr: any) => (
+                      <div key={pr.id} className="p-2 rounded-lg bg-secondary/30 text-xs border border-neon-yellow/20">
+                        <p className="font-medium neon-text-yellow">🔐 {pr.patient_name}</p>
+                        <p className="text-muted-foreground mt-0.5">Wants to know about: <span className="font-medium">{pr.request_type}</span></p>
+                        <p className="text-muted-foreground text-[10px] italic">"{pr.question}"</p>
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handlePermission(pr.id, 'approved'); }}
+                            className="flex items-center gap-1 text-[10px] px-2 py-1 rounded bg-green-500/20 hover:bg-green-500/30 text-green-400 transition-colors"
+                          >
+                            <ShieldCheck className="w-3 h-3" /> Approve
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handlePermission(pr.id, 'denied'); }}
+                            className="flex items-center gap-1 text-[10px] px-2 py-1 rounded bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-colors"
+                          >
+                            <ShieldX className="w-3 h-3" /> Deny
+                          </button>
+                        </div>
+                        <p className="text-[9px] text-muted-foreground mt-1">{new Date(pr.created_at).toLocaleString()}</p>
                       </div>
                     ))}
                   </div>

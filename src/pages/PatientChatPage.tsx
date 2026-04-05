@@ -304,6 +304,62 @@ export default function PatientChatPage() {
     }
   };
 
+  // Permission request flow
+  const createPermissionRequest = async (question: string, topic: string) => {
+    if (!userId) return;
+    // Get user display name
+    const { data: { session } } = await supabase.auth.getSession();
+    const patientName = session?.user?.email || "Patient";
+    
+    await supabase.from('permission_requests' as any).insert({
+      user_id: userId,
+      patient_name: patientName,
+      question,
+      request_type: topic,
+      status: 'pending',
+    } as any);
+  };
+
+  // Listen for permission request updates
+  useEffect(() => {
+    if (!userId || !chatLoaded) return;
+    const channel = supabase
+      .channel('patient-permissions')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'permission_requests',
+        filter: `user_id=eq.${userId}`,
+      }, (payload) => {
+        const req = payload.new as any;
+        if (req.status === 'approved') {
+          const approvedMsg = `✅ Doctor ne permission de di hai! Aap is baare mein pooch sakte hain.\n\nYeh rahi hospital ki policies aur information:\n\n${buildPoliciesInfo()}`;
+          const msg: Message = { id: `perm-${req.id}`, text: approvedMsg, sender: "ai", timestamp: timeNow() };
+          setMessages(prev => [...prev, msg]);
+          saveMessageToDB(approvedMsg, "ai");
+        } else if (req.status === 'denied') {
+          const deniedMsg = "❌ Sorry, doctor ne is information ko share karne ki permission nahi di hai. Agar aapko koi aur jaankari chahiye toh zaroor poochiye! 🙏";
+          const msg: Message = { id: `perm-${req.id}`, text: deniedMsg, sender: "ai", timestamp: timeNow() };
+          setMessages(prev => [...prev, msg]);
+          saveMessageToDB(deniedMsg, "ai");
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [userId, chatLoaded, policies]);
+
+  const buildPoliciesInfo = () => {
+    const parts: string[] = [];
+    if (policies.visitorPolicy) parts.push(`👥 Visitor Policy: ${policies.visitorPolicy}`);
+    if (policies.refundPolicy) parts.push(`💰 Refund Policy: ${policies.refundPolicy}`);
+    if (policies.emergencyProtocol) parts.push(`🚨 Emergency Protocol: ${policies.emergencyProtocol}`);
+    if (policies.admissionPolicy) parts.push(`🏥 Admission Policy: ${policies.admissionPolicy}`);
+    if (policies.dischargePolicy) parts.push(`📋 Discharge Policy: ${policies.dischargePolicy}`);
+    if (policies.patientRights) parts.push(`⚖️ Patient Rights: ${policies.patientRights}`);
+    if (parts.length === 0) parts.push("Abhi hospital ne koi specific policies set nahi ki hain. Doctor se directly poochiye.");
+    return parts.join("\n\n");
+  };
+
   const addAIMessageAsync = async (text: string) => {
     // Show typing indicator
     const typingId = Date.now() + 99;
@@ -312,13 +368,19 @@ export default function PatientChatPage() {
 
     const reply = await getAIReply(text);
 
-    // Check if AI wants to trigger appointment booking
+    // Check if AI wants to trigger appointment booking or permission request
     try {
       const parsed = JSON.parse(reply);
       if (parsed.action === "book_appointment") {
         setMessages(prev => prev.filter(m => m.id !== typingId));
         setCollection({ step: "name", data: {} });
         addAIMessage("Zaroor! Appointment ke liye kuch details chahiye.\n\nSabse pehle, aapka poora naam bataiye:");
+        return;
+      }
+      if (parsed.action === "request_permission") {
+        setMessages(prev => prev.filter(m => m.id !== typingId));
+        await createPermissionRequest(text, parsed.topic || "policies");
+        addAIMessage("🔒 Yeh sensitive information hai. Doctor se permission li ja rahi hai...\n\n⏳ Please thoda wait karein, jaise hi doctor approve karenge, aapko yahan information mil jayegi.");
         return;
       }
     } catch {
