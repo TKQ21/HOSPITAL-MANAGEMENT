@@ -1,4 +1,4 @@
-import { Menu, Moon, Sun, Bell, LogOut, Download } from "lucide-react";
+import { Menu, Moon, Sun, Bell, LogOut, Download, ShieldCheck, ShieldX } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +12,7 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
   const [showNotif, setShowNotif] = useState(false);
   const [pendingAppts, setPendingAppts] = useState<any[]>([]);
   const [notifMessages, setNotifMessages] = useState<any[]>([]);
+  const [permissionRequests, setPermissionRequests] = useState<any[]>([]);
   const sessionStartedAt = useRef(new Date().toISOString());
   const navigate = useNavigate();
 
