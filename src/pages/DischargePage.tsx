@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { FileText, Plus, Search, Edit2, Trash2, X, Save, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import DataUploader from "@/components/DataUploader";
 
 interface DischargeSummary {
   id: string; patient_name: string; patient_phone: string; admission_date: string; discharge_date: string;
