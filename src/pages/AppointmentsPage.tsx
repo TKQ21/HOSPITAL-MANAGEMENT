@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Check, X, Clock, Search, RefreshCw, Eye, CalendarClock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import DataUploader from "@/components/DataUploader";
 
 interface Appointment {
   id: string;
