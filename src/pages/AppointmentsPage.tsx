@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Check, X, Clock, Search, RefreshCw, Eye, CalendarClock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import DataUploader from "@/components/DataUploader";
 
 interface Appointment {
   id: string;
@@ -144,10 +145,26 @@ export default function AppointmentsPage() {
           <h1 className="font-display text-xl sm:text-2xl font-bold neon-text-pink tracking-wider">Appointments</h1>
           <p className="text-muted-foreground text-xs sm:text-sm mt-1">All appointment requests & history</p>
         </div>
-        <button onClick={loadAppointments} className="flex items-center gap-2 px-3 py-2 rounded-lg glass-panel border neon-border-cyan hover:bg-secondary/50 transition-all text-sm self-start">
-          <RefreshCw className="w-4 h-4 neon-text-cyan" />
-          <span className="neon-text-cyan text-xs font-display">Refresh</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <DataUploader
+            table="appointments"
+            label="Appointments"
+            columns={[
+              { fileColumn: "Patient Name", dbColumn: "patient_name", required: true },
+              { fileColumn: "Phone", dbColumn: "phone", required: true },
+              { fileColumn: "Reason", dbColumn: "reason", required: true },
+              { fileColumn: "Date", dbColumn: "appointment_date", required: true },
+              { fileColumn: "Time", dbColumn: "appointment_time", required: true },
+              { fileColumn: "User ID", dbColumn: "user_id", required: true },
+              { fileColumn: "Status", dbColumn: "status" },
+            ]}
+            onSuccess={loadAppointments}
+          />
+          <button onClick={loadAppointments} className="flex items-center gap-2 px-3 py-2 rounded-lg glass-panel border neon-border-cyan hover:bg-secondary/50 transition-all text-sm self-start">
+            <RefreshCw className="w-4 h-4 neon-text-cyan" />
+            <span className="neon-text-cyan text-xs font-display">Refresh</span>
+          </button>
+        </div>
       </div>
 
       {/* Search & Filters */}

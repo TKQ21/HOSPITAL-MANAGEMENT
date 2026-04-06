@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { FileText, Plus, Search, Edit2, Trash2, X, Save, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import DataUploader from "@/components/DataUploader";
 
 interface DischargeSummary {
   id: string; patient_name: string; patient_phone: string; admission_date: string; discharge_date: string;
@@ -58,7 +59,28 @@ export default function DischargePage() {
           <h1 className="font-display text-xl sm:text-2xl font-bold neon-text-cyan tracking-wider">Discharge Summaries</h1>
           <p className="text-muted-foreground text-xs mt-1">{summaries.length} summaries</p>
         </div>
-        <button onClick={() => { resetForm(); setShowForm(true); }} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/20 border neon-border-cyan neon-glow-cyan text-sm neon-text-cyan"><Plus className="w-4 h-4" /> New Summary</button>
+        <div className="flex items-center gap-2">
+          <DataUploader
+            table="discharge_summaries"
+            label="Discharge"
+            columns={[
+              { fileColumn: "Patient Name", dbColumn: "patient_name", required: true },
+              { fileColumn: "Patient Phone", dbColumn: "patient_phone", required: true },
+              { fileColumn: "Admission Date", dbColumn: "admission_date", required: true },
+              { fileColumn: "Discharge Date", dbColumn: "discharge_date", required: true },
+              { fileColumn: "Diagnosis", dbColumn: "diagnosis", required: true },
+              { fileColumn: "Treatment", dbColumn: "treatment" },
+              { fileColumn: "Medications", dbColumn: "medications" },
+              { fileColumn: "Doctor Name", dbColumn: "doctor_name", required: true },
+              { fileColumn: "Department", dbColumn: "department" },
+              { fileColumn: "Follow Up", dbColumn: "follow_up_instructions" },
+              { fileColumn: "Clinical Notes", dbColumn: "clinical_notes" },
+              { fileColumn: "Status", dbColumn: "status" },
+            ]}
+            onSuccess={load}
+          />
+          <button onClick={() => { resetForm(); setShowForm(true); }} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/20 border neon-border-cyan neon-glow-cyan text-sm neon-text-cyan"><Plus className="w-4 h-4" /> New Summary</button>
+        </div>
       </div>
 
       <div className="flex gap-2 flex-wrap">

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { BedDouble, Plus, Search, Edit2, Trash2, X, Save, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import DataUploader from "@/components/DataUploader";
 
 interface Bed {
   id: string; bed_number: string; ward_type: string; department_id: string | null;
@@ -67,9 +68,23 @@ export default function BedsPage() {
           <h1 className="font-display text-xl sm:text-2xl font-bold neon-text-cyan tracking-wider">Bed Management</h1>
           <p className="text-muted-foreground text-xs mt-1">{totalBeds} beds, {occupied} occupied</p>
         </div>
-        <button onClick={() => { resetForm(); setShowForm(true); }} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/20 border neon-border-cyan neon-glow-cyan text-sm neon-text-cyan">
-          <Plus className="w-4 h-4" /> Add Bed
-        </button>
+        <div className="flex items-center gap-2">
+          <DataUploader
+            table="beds"
+            label="Beds"
+            columns={[
+              { fileColumn: "Bed Number", dbColumn: "bed_number", required: true },
+              { fileColumn: "Ward Type", dbColumn: "ward_type" },
+              { fileColumn: "Status", dbColumn: "status" },
+              { fileColumn: "Patient Name", dbColumn: "patient_name" },
+              { fileColumn: "Patient Phone", dbColumn: "patient_phone" },
+            ]}
+            onSuccess={load}
+          />
+          <button onClick={() => { resetForm(); setShowForm(true); }} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/20 border neon-border-cyan neon-glow-cyan text-sm neon-text-cyan">
+            <Plus className="w-4 h-4" /> Add Bed
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

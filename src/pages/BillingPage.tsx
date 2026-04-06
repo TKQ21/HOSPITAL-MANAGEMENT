@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { DollarSign, Plus, Search, Edit2, Trash2, X, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import DataUploader from "@/components/DataUploader";
 
 interface Bill {
   id: string; patient_name: string; patient_phone: string; items: any[]; total_amount: number;
@@ -61,7 +62,23 @@ export default function BillingPage() {
           <h1 className="font-display text-xl sm:text-2xl font-bold neon-text-cyan tracking-wider">Billing</h1>
           <p className="text-muted-foreground text-xs mt-1">{bills.length} bills</p>
         </div>
-        <button onClick={() => { resetForm(); setShowForm(true); }} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/20 border neon-border-cyan neon-glow-cyan text-sm neon-text-cyan"><Plus className="w-4 h-4" /> New Bill</button>
+        <div className="flex items-center gap-2">
+          <DataUploader
+            table="billing"
+            label="Bills"
+            columns={[
+              { fileColumn: "Patient Name", dbColumn: "patient_name", required: true },
+              { fileColumn: "Patient Phone", dbColumn: "patient_phone", required: true },
+              { fileColumn: "Total Amount", dbColumn: "total_amount" },
+              { fileColumn: "Paid Amount", dbColumn: "paid_amount" },
+              { fileColumn: "Payment Status", dbColumn: "payment_status" },
+              { fileColumn: "Payment Method", dbColumn: "payment_method" },
+              { fileColumn: "Notes", dbColumn: "notes" },
+            ]}
+            onSuccess={load}
+          />
+          <button onClick={() => { resetForm(); setShowForm(true); }} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/20 border neon-border-cyan neon-glow-cyan text-sm neon-text-cyan"><Plus className="w-4 h-4" /> New Bill</button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Search, Phone, Calendar, FileText, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import DataUploader from "@/components/DataUploader";
 
 interface Patient {
   id: string;
@@ -51,9 +52,23 @@ export default function PatientsPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-slide-in">
-      <div>
-        <h1 className="font-display text-xl sm:text-2xl font-bold neon-text-yellow tracking-wider">Patients</h1>
-        <p className="text-muted-foreground text-xs sm:text-sm mt-1">Patient records & complete appointment history</p>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <h1 className="font-display text-xl sm:text-2xl font-bold neon-text-yellow tracking-wider">Patients</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-1">Patient records & complete appointment history</p>
+        </div>
+        <DataUploader
+          table="patients"
+          label="Patients"
+          columns={[
+            { fileColumn: "Name", dbColumn: "name", required: true },
+            { fileColumn: "Phone", dbColumn: "phone", required: true },
+            { fileColumn: "User ID", dbColumn: "user_id", required: true },
+            { fileColumn: "Visits", dbColumn: "visits" },
+            { fileColumn: "Notes", dbColumn: "notes" },
+          ]}
+          onSuccess={load}
+        />
       </div>
 
       <div className="relative max-w-md">
