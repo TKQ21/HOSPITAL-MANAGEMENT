@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { BedDouble, Plus, Search, Edit2, Trash2, X, Save, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import DataUploader from "@/components/DataUploader";
 
 interface Bed {
   id: string; bed_number: string; ward_type: string; department_id: string | null;
