@@ -22,10 +22,19 @@ const features = [
 
 export default function LandingPage() {
   const [dark, setDark] = useState(true);
+  const [activeDoctor, setActiveDoctor] = useState(0);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
   }, [dark]);
+
+  // Auto-rotate doctor images every 3 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveDoctor(prev => (prev + 1) % doctors.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="min-h-screen stars-bg relative overflow-hidden">
