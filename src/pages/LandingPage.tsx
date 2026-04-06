@@ -90,11 +90,23 @@ export default function LandingPage() {
           </div>
           <div className="hidden md:flex justify-center">
             <div className="relative">
-              <div className="w-72 h-72 lg:w-80 lg:h-80 rounded-full bg-gradient-to-br from-primary/20 to-neon-green/10 neon-glow-cyan flex items-center justify-center">
-                <img src={doctor1} alt="Doctor" className="w-60 h-60 lg:w-68 lg:h-68 object-cover rounded-full" width={272} height={272} />
+              <div className="w-72 h-72 lg:w-80 lg:h-80 rounded-full bg-gradient-to-br from-primary/20 to-neon-green/10 neon-glow-cyan flex items-center justify-center relative overflow-hidden">
+                {doctors.map((d, i) => (
+                  <img
+                    key={i}
+                    src={d.img}
+                    alt={d.name}
+                    className={`w-60 h-60 lg:w-68 lg:h-68 object-cover rounded-full absolute transition-all duration-700 ease-in-out ${
+                      i === activeDoctor ? "opacity-100 scale-100" : "opacity-0 scale-95"
+                    }`}
+                    width={272}
+                    height={272}
+                  />
+                ))}
               </div>
               <div className="absolute -bottom-4 -right-4 glass-panel border neon-border-green rounded-xl px-4 py-2 animate-pulse-neon">
-                <p className="text-xs neon-text-green font-display font-bold">● Available Now</p>
+                <p className="text-xs neon-text-green font-display font-bold">● {doctors[activeDoctor].name}</p>
+                <p className="text-[10px] text-muted-foreground">{doctors[activeDoctor].specialty}</p>
               </div>
             </div>
           </div>
