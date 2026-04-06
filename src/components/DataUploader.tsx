@@ -101,7 +101,7 @@ export default function DataUploader({ table, columns, onSuccess, label }: DataU
         });
 
         if (batch.length > 0) {
-          const { error } = await supabase.from(table).insert(batch as any);
+          const { error } = await (supabase.from as any)(table).insert(batch);
           if (error) { failed += batch.length; console.error("Upload error:", error); }
           else { success += batch.length; }
         }
