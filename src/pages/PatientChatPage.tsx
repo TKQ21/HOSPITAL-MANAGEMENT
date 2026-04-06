@@ -329,9 +329,9 @@ export default function PatientChatPage() {
         event: 'UPDATE',
         schema: 'public',
         table: 'permission_requests',
-        filter: `user_id=eq.${userId}`,
       }, (payload) => {
         const req = payload.new as any;
+        if (req.user_id !== userId) return;
         if (req.status === 'approved') {
           const approvedMsg = `✅ Doctor ne permission de di hai! Aap is baare mein pooch sakte hain.\n\nYeh rahi hospital ki policies aur information:\n\n${buildPoliciesInfo()}`;
           const msg: Message = { id: `perm-${req.id}`, text: approvedMsg, sender: "ai", timestamp: timeNow() };
