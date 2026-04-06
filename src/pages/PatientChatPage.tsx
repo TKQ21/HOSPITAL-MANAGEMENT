@@ -199,6 +199,63 @@ export default function PatientChatPage() {
           saveMessageToDB(welcomeText, "ai", uid);
         }
 
+        // Check for permission requests approved/denied while offline
+        const { data: permRequests } = await supabase
+          .from('permission_requests')
+          .select('*')
+          .eq('user_id', uid)
+          .in('status', ['approved', 'denied'])
+          .order('updated_at', { ascending: true });
+
+        if (permRequests && permRequests.length > 0) {
+          // Check which permission responses are already in chat history
+          const existingPermIds = new Set(
+            (loadedMessages || [])
+              .filter(m => typeof m.id === 'string' && (m.id as string).startsWith('perm-'))
+              .map(m => (m.id as string).replace('perm-', ''))
+          );
+
+          for (const req of permRequests) {
+            if (existingPermIds.has(req.id)) continue;
+            // Also check if response text already exists in chat
+            const alreadySaved = (chatHistory || []).some((m: any) => 
+              m.sender === 'ai' && (
+                (req.status === 'approved' && m.text.includes('Doctor ne permission de di hai')) ||
+                (req.status === 'denied' && m.text.includes('doctor ne is information ko share karne ki permission nahi di hai'))
+              ) && new Date(m.created_at).getTime() >= new Date(req.updated_at).getTime() - 60000
+            );
+            if (alreadySaved) continue;
+
+            let responseText = '';
+            if (req.status === 'approved') {
+              const savedPolicies = localStorage.getItem("hospital_policies");
+              const savedProfile = localStorage.getItem("hospital_profile");
+              const pol = { ...(savedProfile ? JSON.parse(savedProfile) : {}), ...(savedPolicies ? JSON.parse(savedPolicies) : {}) };
+              const parts: string[] = [];
+              if (pol.visitorPolicy) parts.push(`👥 Visitor Policy: ${pol.visitorPolicy}`);
+              if (pol.refundPolicy) parts.push(`💰 Refund Policy: ${pol.refundPolicy}`);
+              if (pol.emergencyProtocol) parts.push(`🚨 Emergency Protocol: ${pol.emergencyProtocol}`);
+              if (pol.admissionPolicy) parts.push(`🏥 Admission Policy: ${pol.admissionPolicy}`);
+              if (pol.dischargePolicy) parts.push(`📋 Discharge Policy: ${pol.dischargePolicy}`);
+              if (pol.patientRights) parts.push(`⚖️ Patient Rights: ${pol.patientRights}`);
+              if (parts.length === 0) parts.push("Abhi hospital ne koi specific policies set nahi ki hain. Doctor se directly poochiye.");
+              responseText = `✅ Doctor ne permission de di hai! Aap is baare mein pooch sakte hain.\n\nYeh rahi hospital ki policies aur information:\n\n${parts.join("\n\n")}`;
+            } else {
+              responseText = "❌ Sorry, doctor ne is information ko share karne ki permission nahi di hai. Agar aapko koi aur jaankari chahiye toh zaroor poochiye! 🙏";
+            }
+
+            const permMsg: Message = {
+              id: `perm-${req.id}`,
+              text: responseText,
+              sender: "ai",
+              timestamp: formatMessageTime(req.updated_at),
+              createdAt: req.updated_at,
+            };
+            setMessages(prev => prev.some(m => m.id === permMsg.id) ? prev : [...prev, permMsg]);
+            await saveMessageToDB(responseText, "ai", uid);
+          }
+        }
+
         await supabase.from('notifications').update({ is_read: true }).eq('user_id', uid).eq('is_read', false);
         setChatLoaded(true);
       }
