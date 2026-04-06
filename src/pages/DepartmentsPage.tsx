@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Building, Plus, Search, Edit2, Trash2, X, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import DataUploader from "@/components/DataUploader";
 
 interface Department {
   id: string;
