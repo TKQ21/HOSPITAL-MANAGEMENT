@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Search, Phone, Calendar, FileText, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import DataUploader from "@/components/DataUploader";
 
 interface Patient {
   id: string;
