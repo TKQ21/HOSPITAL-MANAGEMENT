@@ -74,9 +74,22 @@ export default function DepartmentsPage() {
           <h1 className="font-display text-xl sm:text-2xl font-bold neon-text-cyan tracking-wider">Departments</h1>
           <p className="text-muted-foreground text-xs mt-1">{departments.length} departments</p>
         </div>
-        <button onClick={() => { resetForm(); setShowForm(true); }} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/20 border neon-border-cyan neon-glow-cyan text-sm neon-text-cyan">
-          <Plus className="w-4 h-4" /> Add Department
-        </button>
+        <div className="flex items-center gap-2">
+          <DataUploader
+            table="departments"
+            label="Departments"
+            columns={[
+              { fileColumn: "Name", dbColumn: "name", required: true },
+              { fileColumn: "Head Doctor", dbColumn: "head_doctor" },
+              { fileColumn: "Description", dbColumn: "description" },
+              { fileColumn: "Status", dbColumn: "status" },
+            ]}
+            onSuccess={load}
+          />
+          <button onClick={() => { resetForm(); setShowForm(true); }} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/20 border neon-border-cyan neon-glow-cyan text-sm neon-text-cyan">
+            <Plus className="w-4 h-4" /> Add Department
+          </button>
+        </div>
       </div>
 
       <div className="relative">
